@@ -26,16 +26,16 @@ export function ExportSection({
   return (
     <Panel title="Step 3: Export" subtitle="Download generated dumps for each supported dialect.">
       <div className="grid gap-2 sm:grid-cols-2">
-        <button className="rounded-md border px-3 py-2" type="button" onClick={onExportPostgres}>
+        <button className="cursor-pointer rounded-md border px-3 py-2" type="button" onClick={onExportPostgres}>
           Export PostgreSQL
         </button>
-        <button className="rounded-md border px-3 py-2" type="button" onClick={onExportMysql}>
+        <button className="cursor-pointer rounded-md border px-3 py-2" type="button" onClick={onExportMysql}>
           Export MySQL
         </button>
-        <button className="rounded-md border px-3 py-2" type="button" onClick={onExportSqlite}>
+        <button className="cursor-pointer rounded-md border px-3 py-2" type="button" onClick={onExportSqlite}>
           Export SQLite
         </button>
-        <button className="rounded-md border px-3 py-2" type="button" onClick={onExportMongo}>
+        <button className="cursor-pointer rounded-md border px-3 py-2" type="button" onClick={onExportMongo}>
           Export MongoDB
         </button>
       </div>

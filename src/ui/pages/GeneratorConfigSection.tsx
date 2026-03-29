@@ -40,7 +40,7 @@ function NumberField({
         {tooltip ? <InfoTooltip content={tooltip} /> : null}
       </span>
       <input
-        className="rounded-md border border-black/15 bg-transparent px-3 py-2"
+        className="cursor-pointer rounded-md border border-black/15 bg-transparent px-3 py-2"
         type="number"
         value={value}
         min={min}
@@ -71,7 +71,7 @@ export function GeneratorConfigSection({
       <div className="grid gap-2 sm:grid-cols-3">
         <button
           type="button"
-          className={`${presetCardClass} ${preset === "easy" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
+          className={`cursor-pointer ${presetCardClass} ${preset === "easy" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
           onClick={() => onPresetChange("easy")}
         >
           <strong>Easy</strong>
@@ -79,7 +79,7 @@ export function GeneratorConfigSection({
         </button>
         <button
           type="button"
-          className={`${presetCardClass} ${preset === "medium" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
+          className={`cursor-pointer ${presetCardClass} ${preset === "medium" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
           onClick={() => onPresetChange("medium")}
         >
           <strong>Medium</strong>
@@ -87,7 +87,7 @@ export function GeneratorConfigSection({
         </button>
         <button
           type="button"
-          className={`${presetCardClass} ${preset === "hard" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
+          className={`cursor-pointer ${presetCardClass} ${preset === "hard" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
           onClick={() => onPresetChange("hard")}
         >
           <strong>Hard</strong>
@@ -165,6 +165,7 @@ export function GeneratorConfigSection({
           <label className="mt-1 flex items-center gap-2 text-sm">
             <input
               type="checkbox"
+              className="cursor-pointer"
               checked={config.includeCycles}
               onChange={(event) => onConfigChange({ includeCycles: event.target.checked })}
             />
@@ -175,7 +176,7 @@ export function GeneratorConfigSection({
       </details>
 
       <button
-        className="mt-4 rounded-md bg-black px-4 py-2 text-white hover:opacity-90 dark:bg-white dark:text-black"
+        className="mt-4 cursor-pointer rounded-md bg-black px-4 py-2 text-white hover:opacity-90 dark:bg-white dark:text-black"
         type="button"
         onClick={onGenerate}
       >

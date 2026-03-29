@@ -110,7 +110,7 @@ export function SchemaPreviewSection({ schema, plan, data, onGenerateData }: Pro
           <div className="border-t border-black/10 p-2 dark:border-white/20">
             <button
               type="button"
-              className="rounded-md border px-3 py-1.5 text-xs"
+              className="cursor-pointer rounded-md border px-3 py-1.5 text-xs"
               onClick={() => setShowAllTables((prev) => !prev)}
             >
               {showAllTables ? "Show less" : `Show all (${schema.entities.length})`}
@@ -120,7 +120,7 @@ export function SchemaPreviewSection({ schema, plan, data, onGenerateData }: Pro
       </div>
 
       <button
-        className="mt-4 rounded-md bg-black px-4 py-2 text-white hover:opacity-90 dark:bg-white dark:text-black"
+        className="mt-4 cursor-pointer rounded-md bg-black px-4 py-2 text-white hover:opacity-90 dark:bg-white dark:text-black"
         type="button"
         onClick={onGenerateData}
       >

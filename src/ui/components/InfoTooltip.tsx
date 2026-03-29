@@ -13,7 +13,7 @@ export function InfoTooltip({ content }: InfoTooltipProps) {
         <Tooltip.Trigger asChild>
           <button
             type="button"
-            className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-black/25 text-[10px] leading-none opacity-80 hover:opacity-100 dark:border-white/30"
+            className="inline-flex h-4 w-4 cursor-pointer items-center justify-center rounded-full border border-black/25 text-[10px] leading-none opacity-80 hover:opacity-100 dark:border-white/30"
             aria-label="More info"
           >
             ?

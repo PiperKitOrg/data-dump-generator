@@ -28,8 +28,12 @@ const DEFAULT_ROWS_PER_ENTITY = 200;
 export default function Home() {
   const [preset, setPreset] = useState<ComplexityPreset>(DEFAULT_PRESET);
   const [seed, setSeed] = useState<number>(DEFAULT_SEED);
-  const [rowsPerEntity, setRowsPerEntity] = useState<number>(DEFAULT_ROWS_PER_ENTITY);
-  const [config, setConfig] = useState<GeneratorConfig>(PRESET_CONFIGS[DEFAULT_PRESET]);
+  const [rowsPerEntity, setRowsPerEntity] = useState<number>(
+    DEFAULT_ROWS_PER_ENTITY,
+  );
+  const [config, setConfig] = useState<GeneratorConfig>(
+    PRESET_CONFIGS[DEFAULT_PRESET],
+  );
   const [schema, setSchema] = useState<Schema | null>(null);
   const [plan, setPlan] = useState<DependencyPlan | null>(null);
   const [data, setData] = useState<DataSet | null>(null);
@@ -63,21 +67,30 @@ export default function Home() {
     if (!schema || !data) {
       return;
     }
-    downloadTextFile("dump.postgres.sql", new PostgresExporter().export(schema, data));
+    downloadTextFile(
+      "dump.postgres.sql",
+      new PostgresExporter().export(schema, data),
+    );
   };
 
   const exportMysql = () => {
     if (!schema || !data) {
       return;
     }
-    downloadTextFile("dump.mysql.sql", new MysqlExporter().export(schema, data));
+    downloadTextFile(
+      "dump.mysql.sql",
+      new MysqlExporter().export(schema, data),
+    );
   };
 
   const exportSqlite = () => {
     if (!schema || !data) {
       return;
     }
-    downloadTextFile("dump.sqlite.sql", new SqliteExporter().export(schema, data));
+    downloadTextFile(
+      "dump.sqlite.sql",
+      new SqliteExporter().export(schema, data),
+    );
   };
 
   const exportMongo = () => {
@@ -93,10 +106,11 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 p-6">
-      <h1 className="text-2xl font-semibold">Piper&apos;s Data Dump Generator</h1>
-      <p className="text-sm text-zinc-600 dark:text-zinc-300">
-        Generate schemas and data in 3 simple steps: setup, preview,
-        export.
+      <h1 className="text-2xl font-semibold">Piper Data Dump Generator</h1>
+      <p className="max-w-3xl text-sm text-zinc-600 dark:text-zinc-300">
+        Generate realistic database schemas with relationships, constraints, and
+        production-like seed data, then export clean PostgreSQL, MySQL, SQLite,
+        and MongoDB dumps in minutes.
       </p>
       <div className="flex flex-wrap gap-2 text-xs">
         <span className="rounded-full border px-2 py-1">1. Setup</span>
@@ -131,6 +145,11 @@ export default function Home() {
         onExportSqlite={exportSqlite}
         onExportMongo={exportMongo}
       />
+
+      <footer className="mt-2 border-t border-black/10 pt-4 text-xs text-zinc-600 dark:border-white/20 dark:text-zinc-400">
+        © {new Date().getFullYear()} Adam — The Developer. This project
+        originated from Piper.
+      </footer>
     </main>
   );
 }
