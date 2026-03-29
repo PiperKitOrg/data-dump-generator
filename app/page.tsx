@@ -95,7 +95,7 @@ export default function Home() {
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 p-6">
       <h1 className="text-2xl font-semibold">Piper Dump Generator</h1>
       <p className="text-sm text-zinc-600 dark:text-zinc-300">
-        Generate realistic production-like schemas and data in 3 simple steps: setup, preview,
+        Generate schemas and data in 3 simple steps: setup, preview,
         export.
       </p>
       <div className="flex flex-wrap gap-2 text-xs">

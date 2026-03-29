@@ -166,7 +166,7 @@ export function GeneratorConfigSection({
         type="button"
         onClick={onGenerate}
       >
-        Generate Realistic Schema
+        Generate Schema
       </button>
     </Panel>
   );

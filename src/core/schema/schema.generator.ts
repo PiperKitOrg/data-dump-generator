@@ -1,6 +1,7 @@
 import {
   type Entity,
   type Field,
+  type FieldType,
   type GeneratorConfig,
   type Schema,
 } from "@/src/core/schema/schema.model";
