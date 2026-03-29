@@ -5,20 +5,13 @@ import {
   type GeneratorConfig,
   type Schema,
 } from "@/src/core/schema/schema.model";
+import {
+  ENUM_VALUE_RANGE,
+  SCALAR_FIELD_TYPES,
+  SCHEMA_FIELD_NAMES,
+} from "@/src/constants/schema/schema.constants";
 import { generateRelationships } from "@/src/core/schema/relationship.generator";
 import { SeededRandom } from "@/src/utils/seededRandom";
-
-const SCALAR_TYPES: FieldType[] = [
-  "int",
-  "bigint",
-  "float",
-  "decimal",
-  "boolean",
-  "string",
-  "text",
-  "date",
-  "timestamp",
-];
 
 function createField(
   name: string,
@@ -30,8 +23,11 @@ function createField(
     return { name, type, nullable };
   }
 
-  const enumSize = rng.int(3, 6);
-  const enumValues = Array.from({ length: enumSize }, (_, i) => `v_${i + 1}`);
+  const enumSize = rng.int(ENUM_VALUE_RANGE.min, ENUM_VALUE_RANGE.max);
+  const enumValues = Array.from(
+    { length: enumSize },
+    (_, i) => `${SCHEMA_FIELD_NAMES.enumPrefix}${i + 1}`,
+  );
   return {
     name,
     type,
@@ -40,21 +36,28 @@ function createField(
   };
 }
 
-function chooseFieldType(config: GeneratorConfig, rng: SeededRandom): FieldType {
+function chooseFieldType(
+  config: GeneratorConfig,
+  rng: SeededRandom,
+): FieldType {
   if (rng.bool(config.enumRate)) {
     return "enum";
   }
   if (rng.bool(config.jsonRate)) {
     return "json";
   }
-  return rng.pick(SCALAR_TYPES);
+  return rng.pick(SCALAR_FIELD_TYPES);
 }
 
-function createEntity(index: number, config: GeneratorConfig, rng: SeededRandom): Entity {
-  const name = `entity_${index + 1}`;
+function createEntity(
+  index: number,
+  config: GeneratorConfig,
+  rng: SeededRandom,
+): Entity {
+  const name = `${SCHEMA_FIELD_NAMES.entityPrefix}${index + 1}`;
   const fields: Field[] = [
     {
-      name: "id",
+      name: SCHEMA_FIELD_NAMES.primaryId,
       type: "uuid",
       nullable: false,
     },
@@ -62,20 +65,20 @@ function createEntity(index: number, config: GeneratorConfig, rng: SeededRandom)
 
   const additionalFields = Math.max(1, config.fieldsPerEntity - 1);
   for (let i = 0; i < additionalFields; i += 1) {
-    const fieldName = `field_${i + 1}`;
+    const fieldName = `${SCHEMA_FIELD_NAMES.fieldPrefix}${i + 1}`;
     const fieldType = chooseFieldType(config, rng);
     const nullable = rng.bool(config.optionalFieldRate);
     fields.push(createField(fieldName, fieldType, nullable, rng));
   }
 
-  const primaryKey = ["id"];
+  const primaryKey: string[] = [SCHEMA_FIELD_NAMES.primaryId];
   if (rng.bool(config.compositeKeyRate)) {
     fields.push({
-      name: "code",
+      name: SCHEMA_FIELD_NAMES.compositeCode,
       type: "string",
       nullable: false,
     });
-    primaryKey.push("code");
+    primaryKey.push(SCHEMA_FIELD_NAMES.compositeCode);
   }
 
   return {
@@ -85,7 +88,10 @@ function createEntity(index: number, config: GeneratorConfig, rng: SeededRandom)
   };
 }
 
-function ensureRelationshipForeignKeys(entities: Entity[], schema: Schema): void {
+function ensureRelationshipForeignKeys(
+  entities: Entity[],
+  schema: Schema,
+): void {
   const byName = new Map(entities.map((entity) => [entity.name, entity]));
   for (const relationship of schema.relationships) {
     if (relationship.type === "many-to-many") {

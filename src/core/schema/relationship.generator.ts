@@ -3,6 +3,7 @@ import type {
   GeneratorConfig,
   Relationship,
 } from "@/src/core/schema/schema.model";
+import { RELATIONSHIP_DEFAULTS } from "@/src/constants/schema/relationship.constants";
 import { SeededRandom } from "@/src/utils/seededRandom";
 
 function pairKey(fromEntity: string, toEntity: string, type: string): string {
@@ -30,7 +31,7 @@ export function generateRelationships(
       type: "self",
       fromEntity: name,
       toEntity: name,
-      fkField: `${name.toLowerCase()}_parent_id`,
+      fkField: `${name.toLowerCase()}${RELATIONSHIP_DEFAULTS.selfParentSuffix}`,
       nullable: true,
     });
   }
@@ -64,9 +65,9 @@ export function generateRelationships(
       type: "many-to-many",
       fromEntity,
       toEntity,
-      fkField: `${toEntity.toLowerCase()}_id`,
+      fkField: `${toEntity.toLowerCase()}${RELATIONSHIP_DEFAULTS.fkIdSuffix}`,
       nullable: false,
-      joinTable: `${fromEntity.toLowerCase()}_${toEntity.toLowerCase()}_join`,
+      joinTable: `${fromEntity.toLowerCase()}_${toEntity.toLowerCase()}${RELATIONSHIP_DEFAULTS.joinSuffix}`,
     });
   }
 
@@ -92,7 +93,9 @@ export function generateRelationships(
       continue;
     }
 
-    const type = rng.bool(0.2) ? "one-to-one" : "one-to-many";
+    const type = rng.bool(RELATIONSHIP_DEFAULTS.oneToOneRate)
+      ? "one-to-one"
+      : "one-to-many";
     const key = pairKey(fromEntity, toEntity, type);
     if (seen.has(key)) {
       continue;
@@ -103,7 +106,7 @@ export function generateRelationships(
       type,
       fromEntity,
       toEntity,
-      fkField: `${toEntity.toLowerCase()}_id`,
+      fkField: `${toEntity.toLowerCase()}${RELATIONSHIP_DEFAULTS.fkIdSuffix}`,
       nullable: rng.bool(config.optionalFieldRate),
     });
   }

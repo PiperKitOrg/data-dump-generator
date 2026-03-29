@@ -10,6 +10,8 @@ import type {
   Relationship,
   Schema,
 } from "@/src/core/schema/schema.model";
+import { DATA_GENERATOR_DEFAULTS } from "@/src/constants/data/data.constants";
+import { SCHEMA_FIELD_NAMES } from "@/src/constants/schema/schema.constants";
 import { SeededRandom } from "@/src/utils/seededRandom";
 
 function valueForField(
@@ -24,19 +26,38 @@ function valueForField(
     case "int":
       return rowIndex + 1;
     case "bigint":
-      return Number(`${100000 + rowIndex}`);
+      return Number(`${DATA_GENERATOR_DEFAULTS.bigintBase + rowIndex}`);
     case "float":
-      return Number((rng.next() * 1000).toFixed(2));
+      return Number(
+        (rng.next() * DATA_GENERATOR_DEFAULTS.floatMax).toFixed(
+          DATA_GENERATOR_DEFAULTS.decimalPlacesFloat,
+        ),
+      );
     case "decimal":
-      return Number((rng.next() * 10000).toFixed(4));
+      return Number(
+        (rng.next() * DATA_GENERATOR_DEFAULTS.decimalMax).toFixed(
+          DATA_GENERATOR_DEFAULTS.decimalPlacesDecimal,
+        ),
+      );
     case "boolean":
       return rng.bool();
     case "text":
       return `text_${entityName}_${rowIndex + 1}`;
     case "date":
-      return new Date(2024, 0, 1 + (rowIndex % 27)).toISOString().slice(0, 10);
+      return new Date(
+        DATA_GENERATOR_DEFAULTS.baseYear,
+        DATA_GENERATOR_DEFAULTS.baseMonthIndex,
+        1 + (rowIndex % DATA_GENERATOR_DEFAULTS.dayCycle),
+      )
+        .toISOString()
+        .slice(0, 10);
     case "timestamp":
-      return new Date(2024, 0, 1 + (rowIndex % 27), rng.int(0, 23)).toISOString();
+      return new Date(
+        DATA_GENERATOR_DEFAULTS.baseYear,
+        DATA_GENERATOR_DEFAULTS.baseMonthIndex,
+        1 + (rowIndex % DATA_GENERATOR_DEFAULTS.dayCycle),
+        rng.int(0, DATA_GENERATOR_DEFAULTS.maxHour),
+      ).toISOString();
     case "json":
       return {
         row: rowIndex + 1,
@@ -44,7 +65,9 @@ function valueForField(
         flag: rng.bool(),
       };
     case "enum":
-      return field.enumValues?.length ? rng.pick(field.enumValues) : "v_1";
+      return field.enumValues?.length
+        ? rng.pick(field.enumValues)
+        : DATA_GENERATOR_DEFAULTS.enumFallbackValue;
     case "string":
     default:
       return `${field.name}_${rowIndex + 1}`;
@@ -67,10 +90,13 @@ function setRelationshipForeignKey(
   }
 
   const toEntity = byEntityName.get(relationship.toEntity);
-  const pkName = toEntity?.primaryKey[0] ?? "id";
+  const pkName = toEntity?.primaryKey[0] ?? SCHEMA_FIELD_NAMES.primaryId;
 
   for (const row of fromRows) {
-    if (relationship.nullable && rng.bool(0.25)) {
+    if (
+      relationship.nullable &&
+      rng.bool(DATA_GENERATOR_DEFAULTS.nullableFkNullRate)
+    ) {
       row[relationship.fkField] = null;
       continue;
     }
@@ -111,7 +137,10 @@ export const generateData: GenerateData = (
         if (row[field.name] !== undefined) {
           continue;
         }
-        if (field.nullable && rng.bool(0.15)) {
+        if (
+          field.nullable &&
+          rng.bool(DATA_GENERATOR_DEFAULTS.nullableFieldNullRate)
+        ) {
           row[field.name] = null;
           continue;
         }
