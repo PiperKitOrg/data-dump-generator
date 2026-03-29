@@ -2,6 +2,7 @@ import type { DataSet } from "@/src/core/data/data.model";
 import type { FieldType, Schema } from "@/src/core/schema/schema.model";
 import {
   EXPORT_BANNER,
+  PROJECT_REMARK,
   SQL_NULL_LITERAL,
 } from "@/src/constants/exporters/exporter.constants";
 import { SQLITE_TYPE_BY_FIELD_TYPE } from "@/src/constants/exporters/sqlite.constants";
@@ -26,7 +27,7 @@ function quote(value: unknown): string {
 
 export class SqliteExporter implements DialectExporter {
   export(schema: Schema, data: DataSet): string {
-    const stmts: string[] = [EXPORT_BANNER.sqlite];
+    const stmts: string[] = [`-- ${PROJECT_REMARK}`, EXPORT_BANNER.sqlite];
 
     for (const entity of schema.entities) {
       const columns = entity.fields.map((field) => {

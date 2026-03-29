@@ -2,6 +2,7 @@ import type { DataSet } from "@/src/core/data/data.model";
 import type { FieldType, Schema } from "@/src/core/schema/schema.model";
 import {
   EXPORT_BANNER,
+  PROJECT_REMARK,
   SQL_NULL_LITERAL,
 } from "@/src/constants/exporters/exporter.constants";
 import { POSTGRES_TYPE_BY_FIELD_TYPE } from "@/src/constants/exporters/postgres.constants";
@@ -56,6 +57,7 @@ function insertStatements(schema: Schema, data: DataSet): string[] {
 export class PostgresExporter implements DialectExporter {
   export(schema: Schema, data: DataSet): string {
     const sections: string[] = [
+      `-- ${PROJECT_REMARK}`,
       EXPORT_BANNER.postgres,
       ...createTableStatements(schema),
       ...insertStatements(schema, data),

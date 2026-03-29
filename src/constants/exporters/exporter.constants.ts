@@ -1,3 +1,5 @@
+export const PROJECT_REMARK = " Built from Piper, By Adam - The Developer ";
+
 export const SQL_NULL_LITERAL = "NULL";
 export const MONGO_NULL_LITERAL = "null";
 

@@ -3,6 +3,7 @@ import type { Schema } from "@/src/core/schema/schema.model";
 import {
   EXPORT_BANNER,
   MONGO_NULL_LITERAL,
+  PROJECT_REMARK,
 } from "@/src/constants/exporters/exporter.constants";
 import type { DialectExporter } from "@/src/exporters/exporter.types";
 
@@ -21,7 +22,7 @@ function toMongoLiteral(value: unknown): string {
 
 export class MongoExporter implements DialectExporter {
   export(schema: Schema, data: DataSet): string {
-    const lines: string[] = [EXPORT_BANNER.mongo];
+    const lines: string[] = [`// ${PROJECT_REMARK}`, EXPORT_BANNER.mongo];
 
     for (const entity of schema.entities) {
       const rows = data[entity.name] ?? [];
