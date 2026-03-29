@@ -1,65 +1,131 @@
-import Image from "next/image";
+"use client";
+
+import { useMemo, useState } from "react";
+import { PRESET_CONFIGS } from "@/src/constants/ui/presets.constants";
+import type { DataSet, DependencyPlan } from "@/src/core/data/data.model";
+import { generateData } from "@/src/core/data/data.generator";
+import { resolveDependencies } from "@/src/core/data/dependency.resolver";
+import { validateGeneratorConfig } from "@/src/core/schema/config.validation";
+import { generateSchema } from "@/src/core/schema/schema.generator";
+import type {
+  ComplexityPreset,
+  GeneratorConfig,
+  Schema,
+} from "@/src/core/schema/schema.model";
+import { MongoExporter } from "@/src/exporters/mongo.exporter";
+import { MysqlExporter } from "@/src/exporters/mysql.exporter";
+import { PostgresExporter } from "@/src/exporters/postgres.exporter";
+import { SqliteExporter } from "@/src/exporters/sqlite.exporter";
+import { ExportSection } from "@/src/ui/pages/ExportSection";
+import { GeneratorConfigSection } from "@/src/ui/pages/GeneratorConfigSection";
+import { SchemaPreviewSection } from "@/src/ui/pages/SchemaPreviewSection";
+import { downloadTextFile } from "@/src/utils/download";
+
+const DEFAULT_PRESET: ComplexityPreset = "medium";
+const DEFAULT_SEED = 42;
+const DEFAULT_ROWS_PER_ENTITY = 200;
 
 export default function Home() {
+  const [preset, setPreset] = useState<ComplexityPreset>(DEFAULT_PRESET);
+  const [seed, setSeed] = useState<number>(DEFAULT_SEED);
+  const [rowsPerEntity, setRowsPerEntity] = useState<number>(DEFAULT_ROWS_PER_ENTITY);
+  const [config, setConfig] = useState<GeneratorConfig>(PRESET_CONFIGS[DEFAULT_PRESET]);
+  const [schema, setSchema] = useState<Schema | null>(null);
+  const [plan, setPlan] = useState<DependencyPlan | null>(null);
+  const [data, setData] = useState<DataSet | null>(null);
+
+  const safeConfig = useMemo(() => validateGeneratorConfig(config), [config]);
+  const safeRows = Math.max(1, Math.floor(rowsPerEntity || 1));
+  const safeSeed = Math.floor(seed || 0);
+
+  const applyPreset = (nextPreset: ComplexityPreset) => {
+    setPreset(nextPreset);
+    setConfig(PRESET_CONFIGS[nextPreset]);
+  };
+
+  const generateSchemaAndPlan = () => {
+    const nextSchema = generateSchema(safeConfig, safeSeed);
+    const nextPlan = resolveDependencies(nextSchema);
+    setSchema(nextSchema);
+    setPlan(nextPlan);
+    setData(null);
+  };
+
+  const generateSeedData = () => {
+    if (!schema || !plan) {
+      return;
+    }
+    const nextData = generateData(schema, plan, safeRows, safeSeed);
+    setData(nextData);
+  };
+
+  const exportPostgres = () => {
+    if (!schema || !data) {
+      return;
+    }
+    downloadTextFile("dump.postgres.sql", new PostgresExporter().export(schema, data));
+  };
+
+  const exportMysql = () => {
+    if (!schema || !data) {
+      return;
+    }
+    downloadTextFile("dump.mysql.sql", new MysqlExporter().export(schema, data));
+  };
+
+  const exportSqlite = () => {
+    if (!schema || !data) {
+      return;
+    }
+    downloadTextFile("dump.sqlite.sql", new SqliteExporter().export(schema, data));
+  };
+
+  const exportMongo = () => {
+    if (!schema || !data) {
+      return;
+    }
+    downloadTextFile(
+      "dump.mongo.js",
+      new MongoExporter().export(schema, data),
+      "text/javascript;charset=utf-8",
+    );
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 p-6">
+      <h1 className="text-2xl font-semibold">Browser Dump Generator</h1>
+      <p className="text-sm text-zinc-600 dark:text-zinc-300">
+        Pure client-side schema and seed data generation for PostgreSQL, MySQL, SQLite, and
+        MongoDB.
+      </p>
+
+      <GeneratorConfigSection
+        preset={preset}
+        config={safeConfig}
+        seed={safeSeed}
+        rowsPerEntity={safeRows}
+        onPresetChange={applyPreset}
+        onConfigChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
+        onSeedChange={setSeed}
+        onRowsChange={setRowsPerEntity}
+        onGenerate={generateSchemaAndPlan}
+      />
+
+      <SchemaPreviewSection
+        schema={schema}
+        plan={plan}
+        data={data}
+        onGenerateData={generateSeedData}
+      />
+
+      <ExportSection
+        schema={schema}
+        data={data}
+        onExportPostgres={exportPostgres}
+        onExportMysql={exportMysql}
+        onExportSqlite={exportSqlite}
+        onExportMongo={exportMongo}
+      />
+    </main>
   );
 }
