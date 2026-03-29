@@ -25,7 +25,7 @@ export function SchemaPreviewSection({ schema, plan, data, onGenerateData }: Pro
   ).length;
 
   return (
-    <Panel title="Step 2: Schema Preview" subtitle="Review generated entities and graph stats.">
+    <Panel title="Step 2: Review Schema" subtitle="Check table names and relationships before data generation.">
       <div className="grid gap-2 text-sm md:grid-cols-2">
         <p>Entities: {schema.entities.length}</p>
         <p>Relationships: {schema.relationships.length}</p>
@@ -42,7 +42,11 @@ export function SchemaPreviewSection({ schema, plan, data, onGenerateData }: Pro
       <div className="mt-4 max-h-52 overflow-auto rounded-md border border-black/10 p-3 text-sm dark:border-white/20">
         {schema.entities.slice(0, 8).map((entity) => (
           <p key={entity.name} className="mb-1">
-            <strong>{entity.name}</strong>: {entity.fields.map((field) => field.name).join(", ")}
+            <strong>{entity.name}</strong>:{" "}
+            {entity.fields
+              .slice(0, 8)
+              .map((field) => `${field.name}:${field.type}`)
+              .join(", ")}
           </p>
         ))}
         {schema.entities.length > 8 ? <p>...and more entities</p> : null}

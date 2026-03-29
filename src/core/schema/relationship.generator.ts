@@ -51,6 +51,12 @@ export function generateRelationships(
 
   const manyToManyTarget = Math.min(config.manyToManyCount, allOrderedPairs.length);
   const shuffledPairs = rng.shuffle(allOrderedPairs);
+  const fkCountByEntity = new Map<string, number>();
+  const canAddForeignKey = (entityName: string): boolean =>
+    (fkCountByEntity.get(entityName) ?? 0) < RELATIONSHIP_DEFAULTS.maxForeignKeysPerEntity;
+  const trackForeignKey = (entityName: string): void => {
+    fkCountByEntity.set(entityName, (fkCountByEntity.get(entityName) ?? 0) + 1);
+  };
 
   for (const [fromEntity, toEntity] of shuffledPairs) {
     if (relationships.length >= selfCount + manyToManyTarget) {
@@ -92,6 +98,9 @@ export function generateRelationships(
     ) {
       continue;
     }
+    if (!canAddForeignKey(fromEntity)) {
+      continue;
+    }
 
     const type = rng.bool(RELATIONSHIP_DEFAULTS.oneToOneRate)
       ? "one-to-one"
@@ -109,6 +118,7 @@ export function generateRelationships(
       fkField: `${toEntity.toLowerCase()}${RELATIONSHIP_DEFAULTS.fkIdSuffix}`,
       nullable: rng.bool(config.optionalFieldRate),
     });
+    trackForeignKey(fromEntity);
   }
 
   return relationships;

@@ -1,13 +1,15 @@
 import {
   type Entity,
   type Field,
-  type FieldType,
   type GeneratorConfig,
   type Schema,
 } from "@/src/core/schema/schema.model";
 import {
+  ENTITY_TEMPLATES,
+  EXTENSION_FIELDS,
+} from "@/src/constants/schema/entity-templates.constants";
+import {
   ENUM_VALUE_RANGE,
-  SCALAR_FIELD_TYPES,
   SCHEMA_FIELD_NAMES,
 } from "@/src/constants/schema/schema.constants";
 import { generateRelationships } from "@/src/core/schema/relationship.generator";
@@ -36,39 +38,30 @@ function createField(
   };
 }
 
-function chooseFieldType(
-  config: GeneratorConfig,
-  rng: SeededRandom,
-): FieldType {
-  if (rng.bool(config.enumRate)) {
-    return "enum";
-  }
-  if (rng.bool(config.jsonRate)) {
-    return "json";
-  }
-  return rng.pick(SCALAR_FIELD_TYPES);
-}
-
 function createEntity(
+  template: EntityTemplate,
   index: number,
   config: GeneratorConfig,
   rng: SeededRandom,
 ): Entity {
-  const name = `${SCHEMA_FIELD_NAMES.entityPrefix}${index + 1}`;
-  const fields: Field[] = [
-    {
-      name: SCHEMA_FIELD_NAMES.primaryId,
-      type: "uuid",
-      nullable: false,
-    },
-  ];
+  const fields: Field[] = template.fields.map((field) =>
+    createField(field.name, field.type, field.nullable, rng),
+  );
+  const name = index < ENTITY_TEMPLATES.length ? template.name : `${template.name}_${index + 1}`;
 
-  const additionalFields = Math.max(1, config.fieldsPerEntity - 1);
-  for (let i = 0; i < additionalFields; i += 1) {
-    const fieldName = `${SCHEMA_FIELD_NAMES.fieldPrefix}${i + 1}`;
-    const fieldType = chooseFieldType(config, rng);
-    const nullable = rng.bool(config.optionalFieldRate);
-    fields.push(createField(fieldName, fieldType, nullable, rng));
+  const extensionPool = rng.shuffle(EXTENSION_FIELDS);
+  while (fields.length < config.fieldsPerEntity && extensionPool.length > 0) {
+    const extension = extensionPool.pop();
+    if (!extension) {
+      break;
+    }
+    if (fields.some((field) => field.name === extension.name)) {
+      continue;
+    }
+    fields.push({
+      ...extension,
+      nullable: extension.nullable || rng.bool(config.optionalFieldRate),
+    });
   }
 
   const primaryKey: string[] = [SCHEMA_FIELD_NAMES.primaryId];
@@ -114,11 +107,15 @@ function ensureRelationshipForeignKeys(
 
 export function generateSchema(config: GeneratorConfig, seed: number): Schema {
   const rng = new SeededRandom(seed);
-  const entities = Array.from({ length: config.entityCount }, (_, i) =>
-    createEntity(i, config, rng),
-  );
+  const templates = rng.shuffle(ENTITY_TEMPLATES);
+  const entities = Array.from({ length: config.entityCount }, (_, i) => {
+    const template = templates[i % templates.length];
+    return createEntity(template, i, config, rng);
+  });
   const relationships = generateRelationships(entities, config, rng);
   const schema: Schema = { entities, relationships };
   ensureRelationshipForeignKeys(entities, schema);
   return schema;
 }
+
+type EntityTemplate = (typeof ENTITY_TEMPLATES)[number];

@@ -3,4 +3,5 @@ export const RELATIONSHIP_DEFAULTS = {
   fkIdSuffix: "_id",
   selfParentSuffix: "_parent_id",
   joinSuffix: "_join",
+  maxForeignKeysPerEntity: 3,
 } as const;
