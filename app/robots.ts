@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://dump-generator.piperkit.dev";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://data-dump-generator.vercel.app";
 
 export default function robots(): MetadataRoute.Robots {
   return {

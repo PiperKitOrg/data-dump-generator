@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 const siteUrl =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "https://dump-generator.piperkit.dev";
+  process.env.NEXT_PUBLIC_SITE_URL ?? "https://data-dump-generator.vercel.app";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
