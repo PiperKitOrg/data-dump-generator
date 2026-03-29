@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComplexityPreset, GeneratorConfig } from "@/src/core/schema/schema.model";
+import { InfoTooltip } from "@/src/ui/components/InfoTooltip";
 import { Panel } from "@/src/ui/components/Panel";
 
 type Props = {
@@ -22,6 +23,7 @@ function NumberField({
   min,
   max,
   step = 1,
+  tooltip,
 }: {
   label: string;
   value: number;
@@ -29,10 +31,14 @@ function NumberField({
   min?: number;
   max?: number;
   step?: number;
+  tooltip?: string;
 }) {
   return (
     <label className="flex flex-col gap-1 text-sm">
-      <span>{label}</span>
+      <span className="flex items-center gap-1.5">
+        {label}
+        {tooltip ? <InfoTooltip content={tooltip} /> : null}
+      </span>
       <input
         className="rounded-md border border-black/15 bg-transparent px-3 py-2"
         type="number"
@@ -112,6 +118,7 @@ export function GeneratorConfigSection({
             label="Fields per entity"
             value={config.fieldsPerEntity}
             min={2}
+            tooltip="How many columns each table should have on average."
             onChange={(value) => onConfigChange({ fieldsPerEntity: value })}
           />
           <NumberField
@@ -120,18 +127,21 @@ export function GeneratorConfigSection({
             min={0}
             max={1}
             step={0.05}
+            tooltip="Higher values create more table-to-table foreign key relationships."
             onChange={(value) => onConfigChange({ relationshipDensity: value })}
           />
           <NumberField
             label="Many-to-many count"
             value={config.manyToManyCount}
             min={0}
+            tooltip="How many many-to-many links to generate (often via join tables)."
             onChange={(value) => onConfigChange({ manyToManyCount: value })}
           />
           <NumberField
             label="Self references"
             value={config.selfRefCount}
             min={0}
+            tooltip="How many tables should reference rows in the same table (hierarchies)."
             onChange={(value) => onConfigChange({ selfRefCount: value })}
           />
           <NumberField
@@ -140,6 +150,7 @@ export function GeneratorConfigSection({
             min={0}
             max={1}
             step={0.05}
+            tooltip="Chance of using multi-column primary keys instead of only id."
             onChange={(value) => onConfigChange({ compositeKeyRate: value })}
           />
           <NumberField
@@ -148,6 +159,7 @@ export function GeneratorConfigSection({
             min={0}
             max={1}
             step={0.05}
+            tooltip="Chance that generated columns or foreign keys are nullable."
             onChange={(value) => onConfigChange({ optionalFieldRate: value })}
           />
           <label className="mt-1 flex items-center gap-2 text-sm">
@@ -157,6 +169,7 @@ export function GeneratorConfigSection({
               onChange={(event) => onConfigChange({ includeCycles: event.target.checked })}
             />
             Include cycles
+            <InfoTooltip content="Allow circular dependencies in relationships; useful for stress testing dependency planners." />
           </label>
         </div>
       </details>
