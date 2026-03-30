@@ -31,4 +31,43 @@ describe("smoke", () => {
     expect(plan.insertOrder.length).toBe(schema.entities.length);
     expect(new Set(plan.insertOrder).size).toBe(schema.entities.length);
   });
+
+  it("uses exact fieldsPerEntity when no foreign keys are added", () => {
+    const config = validateGeneratorConfig({
+      ...PRESET_CONFIGS.easy,
+      entityCount: 5,
+      fieldsPerEntity: 40,
+      relationshipDensity: 0,
+      manyToManyCount: 0,
+      selfRefCount: 0,
+      compositeKeyRate: 0,
+    });
+    const schema = generateSchema(config, 99);
+    for (const entity of schema.entities) {
+      expect(entity.fields.length).toBe(40);
+    }
+  });
+
+  it("creates exact many-to-many and directed relationship counts", () => {
+    const config = validateGeneratorConfig({
+      ...PRESET_CONFIGS.easy,
+      entityCount: 4,
+      includeCycles: true,
+      manyToManyCount: 3,
+      relationshipDensity: 0.25,
+      selfRefCount: 1,
+      compositeKeyRate: 0,
+    });
+    const schema = generateSchema(config, 1);
+    const N = 4 * 3;
+    const m2m = schema.relationships.filter((r) => r.type === "many-to-many");
+    const self = schema.relationships.filter((r) => r.type === "self");
+    const directed = schema.relationships.filter(
+      (r) => r.type === "one-to-one" || r.type === "one-to-many",
+    );
+    const directedQuota = Math.min(N, Math.round(0.25 * N));
+    expect(self.length).toBe(1);
+    expect(m2m.length).toBe(3);
+    expect(directed.length).toBe(Math.min(directedQuota, N - 3));
+  });
 });

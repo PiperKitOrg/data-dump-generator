@@ -172,6 +172,53 @@ function setRelationshipForeignKey(
   }
 }
 
+function setManyToManyRows(
+  data: DataSet,
+  relationship: Relationship,
+  byEntityName: Map<string, Entity>,
+  rng: SeededRandom,
+): void {
+  if (relationship.type !== "many-to-many" || !relationship.joinTable) {
+    return;
+  }
+
+  const fromRows = data[relationship.fromEntity] ?? [];
+  const toRows = data[relationship.toEntity] ?? [];
+  if (!fromRows.length || !toRows.length) {
+    data[relationship.joinTable] = [];
+    return;
+  }
+
+  const fromEntity = byEntityName.get(relationship.fromEntity);
+  const toEntity = byEntityName.get(relationship.toEntity);
+  const fromPkName = fromEntity?.primaryKey[0] ?? SCHEMA_FIELD_NAMES.primaryId;
+  const toPkName = toEntity?.primaryKey[0] ?? SCHEMA_FIELD_NAMES.primaryId;
+  const fromJoinField = `${relationship.fromEntity.toLowerCase()}_id`;
+  const toJoinField = `${relationship.toEntity.toLowerCase()}_id`;
+
+  const rows: DataSet[string] = [];
+  const seenPairs = new Set<string>();
+  for (const fromRow of fromRows) {
+    const picks = Math.max(1, rng.int(1, Math.min(3, toRows.length)));
+    for (let i = 0; i < picks; i += 1) {
+      const toRow = rng.pick(toRows);
+      const fromValue = fromRow[fromPkName];
+      const toValue = toRow[toPkName];
+      const pairKey = `${String(fromValue)}::${String(toValue)}`;
+      if (seenPairs.has(pairKey)) {
+        continue;
+      }
+      seenPairs.add(pairKey);
+      rows.push({
+        [fromJoinField]: (fromValue ?? null) as PrimitiveValue,
+        [toJoinField]: (toValue ?? null) as PrimitiveValue,
+      });
+    }
+  }
+
+  data[relationship.joinTable] = rows;
+}
+
 export const generateData: GenerateData = (
   schema: Schema,
   plan: DependencyPlan,
@@ -233,6 +280,10 @@ export const generateData: GenerateData = (
 
   for (const relationship of plan.deferredRelations) {
     setRelationshipForeignKey(data, relationship, byEntityName, rng);
+  }
+
+  for (const relationship of schema.relationships) {
+    setManyToManyRows(data, relationship, byEntityName, rng);
   }
 
   return data;

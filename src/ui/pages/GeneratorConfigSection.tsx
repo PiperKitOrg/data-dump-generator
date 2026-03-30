@@ -114,34 +114,34 @@ export function GeneratorConfigSection({
       <details className="mt-4 rounded-md border border-black/10 p-3 dark:border-white/20">
         <summary className="cursor-pointer text-sm font-medium">Advanced options</summary>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          <NumberField
+          {/* <NumberField
             label="Fields per entity"
             value={config.fieldsPerEntity}
             min={2}
-            tooltip="How many columns each table should have on average."
+            tooltip="Exact number of columns per table before foreign keys from relationships are added. Extra columns are padded as field_1, field_2, …"
             onChange={(value) => onConfigChange({ fieldsPerEntity: value })}
-          />
+          /> */}
           <NumberField
             label="Relationship density (0-1)"
             value={config.relationshipDensity}
             min={0}
             max={1}
             step={0.05}
-            tooltip="Higher values create more table-to-table foreign key relationships."
+            tooltip="Exact count of one-to-one + one-to-many edges = round(density × N), where N is the number of allowed ordered entity pairs (see “Include cycles”). Uses pairs not already consumed by many-to-many."
             onChange={(value) => onConfigChange({ relationshipDensity: value })}
           />
           <NumberField
             label="Many-to-many count"
             value={config.manyToManyCount}
             min={0}
-            tooltip="How many many-to-many links to generate (often via join tables)."
+            tooltip="Exact number of many-to-many relationships (up to N pairs). The first M shuffled pairs become M2M; remaining pairs can become directed edges."
             onChange={(value) => onConfigChange({ manyToManyCount: value })}
           />
           <NumberField
             label="Self references"
             value={config.selfRefCount}
             min={0}
-            tooltip="How many tables should reference rows in the same table (hierarchies)."
+            tooltip="Exact number of self-referencing tables: min(requested, entity count). Each reserves one row in those tables for hierarchy later."
             onChange={(value) => onConfigChange({ selfRefCount: value })}
           />
           <NumberField
@@ -150,7 +150,7 @@ export function GeneratorConfigSection({
             min={0}
             max={1}
             step={0.05}
-            tooltip="Chance of using multi-column primary keys instead of only id."
+            tooltip="Exactly round(rate × entity count) tables get a composite primary key (id + code), iff fields per entity ≥ 2. The extra code column is included in that count."
             onChange={(value) => onConfigChange({ compositeKeyRate: value })}
           />
           <NumberField
@@ -159,7 +159,7 @@ export function GeneratorConfigSection({
             min={0}
             max={1}
             step={0.05}
-            tooltip="Chance that generated columns or foreign keys are nullable."
+            tooltip="Padding columns: exactly round(rate × padding column count) are nullable. Directed FK edges: exactly round(rate × directed edge count) use nullable FKs."
             onChange={(value) => onConfigChange({ optionalFieldRate: value })}
           />
           <label className="mt-1 flex items-center gap-2 text-sm">

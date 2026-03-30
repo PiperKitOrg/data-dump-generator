@@ -69,6 +69,16 @@ npm run test
 2. **Review**: inspect generated schema and insert order.
 3. **Export**: download the target dialect dump file.
 
+## Generator semantics (exact numbers)
+
+Advanced options apply **deterministically** from your seed:
+
+- **Composite key rate**: exactly `round(rate × entityCount)` tables get a composite primary key (`id` + `code`) when `fields per entity ≥ 2`; `code` counts toward the column total.
+- **Many-to-many count**: exactly `min(requested, N)` many-to-many relationships, where `N` is the number of allowed ordered entity pairs (depends on **Include cycles**).
+- **Relationship density**: intended one-to-one + one-to-many count is `round(density × N)`; the generator uses **at most** the pairs left after many-to-many, so the realized count is `min(round(density × N), N - M)`.
+- **Self references**: exactly `min(requested, entityCount)` self relationships.
+- **Optional field rate**: among **padding** columns only, exactly `round(rate × paddingCount)` are nullable; among **directed** FK edges, exactly `round(rate × directedCount)` are nullable.
+
 ## Project Structure
 
 ```text

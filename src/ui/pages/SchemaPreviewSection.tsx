@@ -75,6 +75,26 @@ export function SchemaPreviewSection({ schema, plan, data, onGenerateData }: Pro
         </div>
       </div>
 
+      <div className="mt-4">
+        <p className="mb-2 text-sm font-medium">Relationships</p>
+        <div className="flex max-h-44 flex-wrap gap-2 overflow-auto rounded-md border border-black/10 p-3 text-xs dark:border-white/20">
+          {schema.relationships.length === 0 ? (
+            <span className="opacity-70">No relationships generated.</span>
+          ) : (
+            schema.relationships.map((relationship, idx) => (
+              <span
+                key={`${relationship.type}-${relationship.fromEntity}-${relationship.toEntity}-${idx}`}
+                className="rounded-full border border-black/15 px-2 py-1 dark:border-white/25"
+              >
+                {relationship.type === "many-to-many" && relationship.joinTable
+                  ? `${relationship.fromEntity} <-> ${relationship.toEntity} via ${relationship.joinTable}`
+                  : `${relationship.fromEntity}.${relationship.fkField} -> ${relationship.toEntity}.id (${relationship.type})`}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+
       <div className="mt-4 rounded-md border border-black/10 dark:border-white/20">
         <div className="max-h-72 overflow-auto p-3">
           <div className="grid gap-3">

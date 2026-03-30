@@ -1,5 +1,5 @@
 import type { DataSet } from "@/src/core/data/data.model";
-import type { FieldType, Schema } from "@/src/core/schema/schema.model";
+import type { FieldType, Relationship, Schema } from "@/src/core/schema/schema.model";
 import {
   EXPORT_BANNER,
   PROJECT_REMARK,
@@ -27,7 +27,21 @@ function quote(value: unknown): string {
 
 export class SqliteExporter implements DialectExporter {
   export(schema: Schema, data: DataSet): string {
-    const stmts: string[] = [`-- ${PROJECT_REMARK}`, EXPORT_BANNER.sqlite];
+    const stmts: string[] = [
+      `-- ${PROJECT_REMARK}`,
+      EXPORT_BANNER.sqlite,
+      "PRAGMA foreign_keys = ON;",
+    ];
+
+    const relationshipsByFromEntity = new Map<string, Relationship[]>();
+    for (const relationship of schema.relationships) {
+      if (relationship.type === "many-to-many") {
+        continue;
+      }
+      const list = relationshipsByFromEntity.get(relationship.fromEntity) ?? [];
+      list.push(relationship);
+      relationshipsByFromEntity.set(relationship.fromEntity, list);
+    }
 
     for (const entity of schema.entities) {
       const columns = entity.fields.map((field) => {
@@ -35,9 +49,30 @@ export class SqliteExporter implements DialectExporter {
         return `  "${field.name}" ${mapType(field.type)}${nullable}`;
       });
       columns.push(
-        `  PRIMARY KEY (${entity.primaryKey.map((key) => `"${key}"`).join(", ")})`,
+        `  PRIMARY KEY (${entity.primaryKey.map((key) => `"${key}"`).join(", ")})`
       );
+      for (const relationship of relationshipsByFromEntity.get(entity.name) ?? []) {
+        columns.push(
+          `  FOREIGN KEY ("${relationship.fkField}") REFERENCES "${relationship.toEntity}" ("id")`,
+        );
+      }
       stmts.push(`CREATE TABLE "${entity.name}" (\n${columns.join(",\n")}\n);`);
+    }
+    for (const relationship of schema.relationships) {
+      if (relationship.type !== "many-to-many" || !relationship.joinTable) {
+        continue;
+      }
+      const fromFk = `${relationship.fromEntity.toLowerCase()}_id`;
+      const toFk = `${relationship.toEntity.toLowerCase()}_id`;
+      stmts.push(
+        `CREATE TABLE "${relationship.joinTable}" (\n` +
+          `  "${fromFk}" TEXT NOT NULL,\n` +
+          `  "${toFk}" TEXT NOT NULL,\n` +
+          `  PRIMARY KEY ("${fromFk}", "${toFk}"),\n` +
+          `  FOREIGN KEY ("${fromFk}") REFERENCES "${relationship.fromEntity}" ("id"),\n` +
+          `  FOREIGN KEY ("${toFk}") REFERENCES "${relationship.toEntity}" ("id")\n` +
+          `);`,
+      );
     }
 
     for (const entity of schema.entities) {
@@ -47,6 +82,19 @@ export class SqliteExporter implements DialectExporter {
         const values = Object.values(row).map((value) => quote(value));
         stmts.push(
           `INSERT INTO "${entity.name}" (${columns.join(", ")}) VALUES (${values.join(", ")});`,
+        );
+      }
+    }
+    for (const relationship of schema.relationships) {
+      if (relationship.type !== "many-to-many" || !relationship.joinTable) {
+        continue;
+      }
+      const rows = data[relationship.joinTable] ?? [];
+      for (const row of rows) {
+        const columns = Object.keys(row).map((name) => `"${name}"`);
+        const values = Object.values(row).map((value) => quote(value));
+        stmts.push(
+          `INSERT INTO "${relationship.joinTable}" (${columns.join(", ")}) VALUES (${values.join(", ")});`,
         );
       }
     }
