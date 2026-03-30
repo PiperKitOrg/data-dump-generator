@@ -87,9 +87,8 @@ export default function Home() {
       <header className="piper-header mb-10">
         <div className="piper-eyebrow">DATABASE SEED GENERATOR</div>
         <h1 className="piper-title">Piper<span className="piper-title-accent">.</span></h1>
-        <p className="piper-subtitle">
-          Realistic schemas with relationships, constraints, and production-grade seed data —
-          without defining every column by hand.
+        <p className="piper-subtitle">Describe nothing. Define nothing. Get a fully relational schema
+        and production-grade seed data, ready to export.
         </p>
 
         {/* Step indicator */}
