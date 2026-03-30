@@ -4,6 +4,7 @@ import { generateData } from "@/src/core/data/data.generator";
 import { resolveDependencies } from "@/src/core/data/dependency.resolver";
 import { validateGeneratorConfig } from "@/src/core/schema/config.validation";
 import { generateSchema } from "@/src/core/schema/schema.generator";
+import { MAX_COLUMNS_PER_ENTITY } from "@/src/constants/schema/schema.constants";
 import { PostgresExporter } from "@/src/exporters/postgres.exporter";
 
 describe("smoke", () => {
@@ -33,11 +34,10 @@ describe("smoke", () => {
     expect(new Set(plan.insertOrder).size).toBe(schema.entities.length);
   });
 
-  it("uses exact fieldsPerEntity when no foreign keys are added", () => {
+  it("uses template column names only with a 40-column cap (no field_N padding)", () => {
     const config = validateGeneratorConfig({
       ...PRESET_CONFIGS.easy,
       entityCount: 5,
-      fieldsPerEntity: 40,
       relationshipDensity: 0,
       manyToManyCount: 0,
       selfRefCount: 0,
@@ -45,7 +45,10 @@ describe("smoke", () => {
     });
     const schema = generateSchema(config, 99);
     for (const entity of schema.entities) {
-      expect(entity.fields.length).toBe(40);
+      for (const field of entity.fields) {
+        expect(field.name.startsWith("field_")).toBe(false);
+      }
+      expect(entity.fields.length).toBeLessThanOrEqual(MAX_COLUMNS_PER_ENTITY);
     }
   });
 

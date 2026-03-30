@@ -1,134 +1,56 @@
 import {
   type Entity,
   type Field,
-  type FieldType,
   type GeneratorConfig,
   type Schema,
 } from "@/src/core/schema/schema.model";
 import { ENTITY_TEMPLATES } from "@/src/constants/schema/entity-templates.constants";
-import {
-  ENUM_VALUE_RANGE,
-  SCHEMA_FIELD_NAMES,
-  SCALAR_FIELD_TYPES,
-} from "@/src/constants/schema/schema.constants";
+import { MAX_COLUMNS_PER_ENTITY, SCHEMA_FIELD_NAMES } from "@/src/constants/schema/schema.constants";
 import { generateRelationships } from "@/src/core/schema/relationship.generator";
 import { SeededRandom } from "@/src/utils/seededRandom";
 
-function createField(
-  name: string,
-  type: FieldType,
-  nullable: boolean,
-  rng: SeededRandom,
-): Field {
-  if (type !== "enum") {
-    return { name, type, nullable };
-  }
-
-  const enumSize = rng.int(ENUM_VALUE_RANGE.min, ENUM_VALUE_RANGE.max);
-  const enumValues = Array.from(
-    { length: enumSize },
-    (_, i) => `${SCHEMA_FIELD_NAMES.enumPrefix}${i + 1}`,
-  );
-  return {
-    name,
-    type,
-    nullable,
-    enumValues,
-  };
+function cloneTemplateFields(fields: Field[]): Field[] {
+  return fields.map((field) => ({
+    ...field,
+    enumValues: field.enumValues ? [...field.enumValues] : undefined,
+  }));
 }
 
-function paddingTypePlan(
-  paddingCount: number,
-  config: GeneratorConfig,
-  rng: SeededRandom,
-): Array<"enum" | "json" | "scalar"> {
-  if (paddingCount <= 0) {
-    return [];
+const OVERFLOW_TABLE_QUALIFIERS = [
+  "ledger",
+  "archive",
+  "queue",
+  "stream",
+  "batch",
+  "mirror",
+  "cache",
+  "relay",
+  "hub",
+  "vault",
+] as const;
+
+function pickTableName(template: EntityTemplate, repeatIndex: number): string {
+  if (repeatIndex === 0) {
+    return template.name;
   }
-  const enumCount = Math.min(
-    paddingCount,
-    Math.round(config.enumRate * paddingCount),
-  );
-  const jsonCount = Math.min(
-    paddingCount - enumCount,
-    Math.round(config.jsonRate * paddingCount),
-  );
-  const scalarCount = paddingCount - enumCount - jsonCount;
-  const plan: Array<"enum" | "json" | "scalar"> = [];
-  for (let i = 0; i < enumCount; i += 1) {
-    plan.push("enum");
+  const alternate = template.alternateTableNames[repeatIndex - 1];
+  if (alternate) {
+    return alternate;
   }
-  for (let i = 0; i < jsonCount; i += 1) {
-    plan.push("json");
-  }
-  for (let i = 0; i < scalarCount; i += 1) {
-    plan.push("scalar");
-  }
-  for (let i = plan.length - 1; i > 0; i -= 1) {
-    const j = rng.int(0, i);
-    [plan[i], plan[j]] = [plan[j], plan[i]];
-  }
-  return plan;
+  const overflowStep = repeatIndex - 1 - template.alternateTableNames.length;
+  const a = OVERFLOW_TABLE_QUALIFIERS[overflowStep % OVERFLOW_TABLE_QUALIFIERS.length];
+  const b =
+    OVERFLOW_TABLE_QUALIFIERS[
+      Math.floor(overflowStep / OVERFLOW_TABLE_QUALIFIERS.length) %
+        OVERFLOW_TABLE_QUALIFIERS.length
+    ];
+  return `${template.name}_${a}_${b}`;
 }
 
-function buildPaddingFields(
-  count: number,
-  startSuffix: number,
-  config: GeneratorConfig,
-  rng: SeededRandom,
-): Field[] {
-  if (count <= 0) {
-    return [];
-  }
-  const types = paddingTypePlan(count, config, rng);
-  const nullableQuota = Math.min(
-    count,
-    Math.round(config.optionalFieldRate * count),
-  );
-  const fields: Field[] = [];
-  for (let i = 0; i < count; i += 1) {
-    const name = `${SCHEMA_FIELD_NAMES.fieldPrefix}${startSuffix + i}`;
-    const kind = types[i] ?? "scalar";
-    const nullable = i < nullableQuota;
-    if (kind === "enum") {
-      fields.push(createField(name, "enum", nullable, rng));
-    } else if (kind === "json") {
-      fields.push({ name, type: "json", nullable });
-    } else {
-      fields.push(
-        createField(name, rng.pick(SCALAR_FIELD_TYPES), nullable, rng),
-      );
-    }
-  }
-  return fields;
-}
-
-function createEntity(
-  template: EntityTemplate,
-  index: number,
-  config: GeneratorConfig,
-  rng: SeededRandom,
-  useComposite: boolean,
-): Entity {
-  const targetColumns = config.fieldsPerEntity;
-  const bodyTarget = targetColumns - (useComposite ? 1 : 0);
-
-  const baseTemplate = template.fields;
-  const truncated =
-    baseTemplate.length <= bodyTarget
-      ? [...baseTemplate]
-      : baseTemplate.slice(0, bodyTarget);
-
-  const padCount = bodyTarget - truncated.length;
-  const padding = buildPaddingFields(padCount, 1, config, rng);
-
-  const fields: Field[] = [...truncated, ...padding];
-
-  if (fields.length !== bodyTarget) {
-    throw new Error(
-      `Internal: expected ${bodyTarget} body columns, got ${fields.length}`,
-    );
-  }
+function createEntity(template: EntityTemplate, tableName: string, useComposite: boolean): Entity {
+  const maxBodyColumns = MAX_COLUMNS_PER_ENTITY - (useComposite ? 1 : 0);
+  const bodyFields = cloneTemplateFields(template.fields).slice(0, maxBodyColumns);
+  const fields: Field[] = [...bodyFields];
 
   const primaryKey: string[] = [SCHEMA_FIELD_NAMES.primaryId];
   if (useComposite) {
@@ -140,16 +62,8 @@ function createEntity(
     primaryKey.push(SCHEMA_FIELD_NAMES.compositeCode);
   }
 
-  if (fields.length !== targetColumns) {
-    throw new Error(
-      `Internal: expected ${targetColumns} columns, got ${fields.length}`,
-    );
-  }
-
-  const name = index < ENTITY_TEMPLATES.length ? template.name : `${template.name}_${index + 1}`;
-
   return {
-    name,
+    name: tableName,
     fields,
     primaryKey,
   };
@@ -183,9 +97,7 @@ export function generateSchema(config: GeneratorConfig, seed: number): Schema {
 
   const compositeTarget = Math.min(
     entityCount,
-    config.fieldsPerEntity >= 2
-      ? Math.round(config.compositeKeyRate * entityCount)
-      : 0,
+    Math.round(config.compositeKeyRate * entityCount),
   );
   const compositeSlots = new Set(
     rng.shuffle(
@@ -193,15 +105,13 @@ export function generateSchema(config: GeneratorConfig, seed: number): Schema {
     ).slice(0, compositeTarget),
   );
 
+  const templateRepeatIndex = new Map<string, number>();
   const entities = Array.from({ length: entityCount }, (_, i) => {
     const template = templates[i % templates.length];
-    return createEntity(
-      template,
-      i,
-      config,
-      rng,
-      compositeSlots.has(i),
-    );
+    const repeat = templateRepeatIndex.get(template.name) ?? 0;
+    templateRepeatIndex.set(template.name, repeat + 1);
+    const tableName = pickTableName(template, repeat);
+    return createEntity(template, tableName, compositeSlots.has(i));
   });
   const relationships = generateRelationships(entities, config, rng);
   const schema: Schema = { entities, relationships };

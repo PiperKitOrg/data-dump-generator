@@ -51,13 +51,10 @@ export type Schema = {
 
 export type GeneratorConfig = {
   entityCount: number;
-  fieldsPerEntity: number;
   relationshipDensity: number;
   manyToManyCount: number;
   selfRefCount: number;
   compositeKeyRate: number;
-  enumRate: number;
-  jsonRate: number;
   optionalFieldRate: number;
   includeCycles: boolean;
 };

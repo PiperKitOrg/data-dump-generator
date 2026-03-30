@@ -147,7 +147,7 @@ export function GeneratorConfigSection({
           label="Entity count"
           value={config.entityCount}
           min={1}
-          tooltip="How many tables to generate. More tables mean a bigger schema and more relationships possible."
+          tooltip="How many tables to generate. Each table’s columns come from realistic templates (capped at 40). Foreign keys from relationships add extra columns when needed."
           onChange={(value) => onConfigChange({ entityCount: value })}
         />
       </div>
@@ -155,13 +155,6 @@ export function GeneratorConfigSection({
       <details className="mt-4 rounded-md border border-black/10 p-3 dark:border-white/20">
         <summary className="cursor-pointer text-sm font-medium">Advanced options</summary>
         <div className="mt-3 grid gap-3 md:grid-cols-2">
-          {/* <NumberField
-            label="Fields per entity"
-            value={config.fieldsPerEntity}
-            min={2}
-            tooltip="Exact number of columns per table before foreign keys from relationships are added. Extra columns are padded as field_1, field_2, …"
-            onChange={(value) => onConfigChange({ fieldsPerEntity: value })}
-          /> */}
           <NumberField
             label="Relationship density (0-1)"
             value={config.relationshipDensity}

@@ -21,13 +21,10 @@ export function validateGeneratorConfig(raw: GeneratorConfig): GeneratorConfig {
 
   return {
     entityCount,
-    fieldsPerEntity: clamp(Math.floor(raw.fieldsPerEntity), 2, 40),
     relationshipDensity: clamp(raw.relationshipDensity, 0, 1),
     manyToManyCount: clamp(Math.floor(raw.manyToManyCount), 0, pairCount),
     selfRefCount: clamp(Math.floor(raw.selfRefCount), 0, entityCount),
     compositeKeyRate: clamp(raw.compositeKeyRate, 0, 1),
-    enumRate: clamp(raw.enumRate, 0, 1),
-    jsonRate: clamp(raw.jsonRate, 0, 1),
     optionalFieldRate: clamp(raw.optionalFieldRate, 0, 1),
     includeCycles,
   };
