@@ -68,31 +68,65 @@ export function GeneratorConfigSection({
 
   return (
     <Panel title="Step 1: Setup Generator" subtitle="Pick a preset, tweak a few basics, generate.">
+      <div className="mb-1 flex items-center gap-1.5 text-sm font-medium">
+        <span>Complexity</span>
+        <InfoTooltip content="Presets set sensible defaults for table count and how tables connect. You can still fine-tune everything in Advanced options." />
+      </div>
       <div className="grid gap-2 sm:grid-cols-3">
-        <button
-          type="button"
-          className={`cursor-pointer ${presetCardClass} ${preset === "easy" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
-          onClick={() => onPresetChange("easy")}
+        <div
+          className={`relative ${preset === "easy" ? "rounded-lg ring-2 ring-black/20 dark:ring-white/25" : ""}`}
         >
-          <strong>Easy</strong>
-          <p className="mt-1 text-xs opacity-80">Small, fast, clean relationships</p>
-        </button>
-        <button
-          type="button"
-          className={`cursor-pointer ${presetCardClass} ${preset === "medium" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
-          onClick={() => onPresetChange("medium")}
+          <span
+            className="absolute right-2 top-2 z-10"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <InfoTooltip content="Smaller schema, lighter connections—good for quick exports and learning the tool." />
+          </span>
+          <button
+            type="button"
+            className={`w-full cursor-pointer ${presetCardClass} ${preset === "easy" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
+            onClick={() => onPresetChange("easy")}
+          >
+            <strong>Easy</strong>
+            <p className="mt-1 text-xs opacity-80">Small, fast, clean relationships</p>
+          </button>
+        </div>
+        <div
+          className={`relative ${preset === "medium" ? "rounded-lg ring-2 ring-black/20 dark:ring-white/25" : ""}`}
         >
-          <strong>Medium</strong>
-          <p className="mt-1 text-xs opacity-80">Balanced production-like complexity</p>
-        </button>
-        <button
-          type="button"
-          className={`cursor-pointer ${presetCardClass} ${preset === "hard" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
-          onClick={() => onPresetChange("hard")}
+          <span
+            className="absolute right-2 top-2 z-10"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <InfoTooltip content="Balanced size and linking—closer to a typical app database without going huge." />
+          </span>
+          <button
+            type="button"
+            className={`w-full cursor-pointer ${presetCardClass} ${preset === "medium" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
+            onClick={() => onPresetChange("medium")}
+          >
+            <strong>Medium</strong>
+            <p className="mt-1 text-xs opacity-80">Balanced production-like complexity</p>
+          </button>
+        </div>
+        <div
+          className={`relative ${preset === "hard" ? "rounded-lg ring-2 ring-black/20 dark:ring-white/25" : ""}`}
         >
-          <strong>Hard</strong>
-          <p className="mt-1 text-xs opacity-80">Large graph with deeper edge cases</p>
-        </button>
+          <span
+            className="absolute right-2 top-2 z-10"
+            onPointerDown={(event) => event.stopPropagation()}
+          >
+            <InfoTooltip content="Large schema with more tables and trickier links—useful for testing imports and tooling." />
+          </span>
+          <button
+            type="button"
+            className={`w-full cursor-pointer ${presetCardClass} ${preset === "hard" ? "border-black bg-black/5 dark:border-white dark:bg-white/10" : "border-black/15 dark:border-white/20"}`}
+            onClick={() => onPresetChange("hard")}
+          >
+            <strong>Hard</strong>
+            <p className="mt-1 text-xs opacity-80">Large graph with deeper edge cases</p>
+          </button>
+        </div>
       </div>
 
       <div className="mt-4 grid gap-3 md:grid-cols-3">
@@ -100,13 +134,20 @@ export function GeneratorConfigSection({
           label="Rows per table"
           value={rowsPerEntity}
           min={1}
+          tooltip="How many sample rows to create for each table when you generate data. Higher numbers make bigger dump files."
           onChange={onRowsChange}
         />
-        <NumberField label="Seed" value={seed} onChange={onSeedChange} />
+        <NumberField
+          label="Seed"
+          value={seed}
+          tooltip="A number that locks random choices. Same seed + same settings always produce the same schema and data—handy for reproducing issues or comparing runs."
+          onChange={onSeedChange}
+        />
         <NumberField
           label="Entity count"
           value={config.entityCount}
           min={1}
+          tooltip="How many tables to generate. More tables mean a bigger schema and more relationships possible."
           onChange={(value) => onConfigChange({ entityCount: value })}
         />
       </div>
@@ -127,21 +168,21 @@ export function GeneratorConfigSection({
             min={0}
             max={1}
             step={0.05}
-            tooltip="Exact count of one-to-one + one-to-many edges = round(density × N), where N is the number of allowed ordered entity pairs (see “Include cycles”). Uses pairs not already consumed by many-to-many."
+            tooltip="How wired-up the schema feels. Zero means almost no extra parent–child links between tables; higher values add more. Many-to-many links use their own setting below."
             onChange={(value) => onConfigChange({ relationshipDensity: value })}
           />
           <NumberField
             label="Many-to-many count"
             value={config.manyToManyCount}
             min={0}
-            tooltip="Exact number of many-to-many relationships (up to N pairs). The first M shuffled pairs become M2M; remaining pairs can become directed edges."
+            tooltip="How many “linking” tables to add—pairs of tables that connect through a separate join table (like tags on products)."
             onChange={(value) => onConfigChange({ manyToManyCount: value })}
           />
           <NumberField
             label="Self references"
             value={config.selfRefCount}
             min={0}
-            tooltip="Exact number of self-referencing tables: min(requested, entity count). Each reserves one row in those tables for hierarchy later."
+            tooltip="How many tables can point to themselves—think folders inside folders or managers who report to other managers."
             onChange={(value) => onConfigChange({ selfRefCount: value })}
           />
           <NumberField
@@ -150,7 +191,7 @@ export function GeneratorConfigSection({
             min={0}
             max={1}
             step={0.05}
-            tooltip="Exactly round(rate × entity count) tables get a composite primary key (id + code), iff fields per entity ≥ 2. The extra code column is included in that count."
+            tooltip="Share of tables that use two columns together as the primary key instead of only an id. Adds variety for tools that must handle composite keys."
             onChange={(value) => onConfigChange({ compositeKeyRate: value })}
           />
           <NumberField
@@ -159,7 +200,7 @@ export function GeneratorConfigSection({
             min={0}
             max={1}
             step={0.05}
-            tooltip="Padding columns: exactly round(rate × padding column count) are nullable. Directed FK edges: exactly round(rate × directed edge count) use nullable FKs."
+            tooltip="How often generated columns (and some foreign keys) are allowed to be empty. Higher values mean more nullable fields in the dump."
             onChange={(value) => onConfigChange({ optionalFieldRate: value })}
           />
           <label className="mt-1 flex items-center gap-2 text-sm">
@@ -170,7 +211,7 @@ export function GeneratorConfigSection({
               onChange={(event) => onConfigChange({ includeCycles: event.target.checked })}
             />
             Include cycles
-            <InfoTooltip content="Allow circular dependencies in relationships; useful for stress testing dependency planners." />
+            <InfoTooltip content="When on, tables can reference each other in a circle (A→B→C→A). That’s rare in simple apps but useful for testing import order and resolvers." />
           </label>
         </div>
       </details>
