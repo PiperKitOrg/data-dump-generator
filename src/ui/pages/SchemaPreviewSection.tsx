@@ -3,7 +3,10 @@
 import { useMemo, useState } from "react";
 import type { DataSet, DependencyPlan } from "@/src/core/data/data.model";
 import type { Schema } from "@/src/core/schema/schema.model";
-import { Panel } from "@/src/ui/components/Panel";
+
+/** Emoji arrows for relationship chips (avoid ASCII <-> and ->). */
+const ARROW_TO = "➡️";
+const ARROW_BIDI = "↔️";
 
 type Props = {
   schema: Schema | null;
@@ -14,140 +17,126 @@ type Props = {
 
 export function SchemaPreviewSection({ schema, plan, data, onGenerateData }: Props) {
   const [showAllTables, setShowAllTables] = useState(false);
+
   const entitiesToRender = useMemo(() => {
-    if (!schema) {
-      return [];
-    }
+    if (!schema) return [];
     return showAllTables ? schema.entities : schema.entities.slice(0, 8);
   }, [schema, showAllTables]);
 
-  if (!schema || !plan) {
-    return null;
-  }
+  if (!schema || !plan) return null;
 
-  const manyToManyCount = schema.relationships.filter(
-    (relationship) => relationship.type === "many-to-many",
-  ).length;
-  const selfRefCount = schema.relationships.filter(
-    (relationship) => relationship.type === "self",
-  ).length;
-  const compositePkCount = schema.entities.filter(
-    (entity) => entity.primaryKey.length > 1,
-  ).length;
+  const manyToManyCount = schema.relationships.filter((r) => r.type === "many-to-many").length;
+  const selfRefCount = schema.relationships.filter((r) => r.type === "self").length;
+  const compositePkCount = schema.entities.filter((e) => e.primaryKey.length > 1).length;
+
+  const stats = [
+    { label: "Tables", value: schema.entities.length },
+    { label: "Relations", value: schema.relationships.length },
+    { label: "Deferred", value: plan.deferredRelations.length },
+    { label: "M2M", value: manyToManyCount },
+    { label: "Self Refs", value: selfRefCount },
+    { label: "Composite PKs", value: compositePkCount },
+  ];
 
   return (
-    <Panel
-      title="Step 2: Review Schema"
-      subtitle="Quickly check table shape and insert sequence."
-    >
-      <div className="grid gap-2 text-sm sm:grid-cols-3">
-        <div className="rounded-md border border-black/10 px-3 py-2 dark:border-white/20">
-          Tables: <strong>{schema.entities.length}</strong>
+    <div className="piper-panel">
+      <div className="piper-panel-header">
+        <div>
+          <div className="piper-panel-step">STEP 02</div>
+          <h2 className="piper-panel-title">Review Schema</h2>
+          <p className="piper-panel-subtitle">Check table shape and insert sequence.</p>
         </div>
-        <div className="rounded-md border border-black/10 px-3 py-2 dark:border-white/20">
-          Relationships: <strong>{schema.relationships.length}</strong>
-        </div>
-        <div className="rounded-md border border-black/10 px-3 py-2 dark:border-white/20">
-          Deferred: <strong>{plan.deferredRelations.length}</strong>
-        </div>
-        <div className="rounded-md border border-black/10 px-3 py-2 dark:border-white/20">
-          Many-to-many: <strong>{manyToManyCount}</strong>
-        </div>
-        <div className="rounded-md border border-black/10 px-3 py-2 dark:border-white/20">
-          Self refs: <strong>{selfRefCount}</strong>
-        </div>
-        <div className="rounded-md border border-black/10 px-3 py-2 dark:border-white/20">
-          Composite PKs: <strong>{compositePkCount}</strong>
-        </div>
+        {data && (
+          <span className="piper-success piper-success-inline">
+            ✓ Data ready
+          </span>
+        )}
       </div>
 
-      <div className="mt-4">
-        <p className="mb-2 text-sm font-medium">Insert order</p>
-        <div className="flex flex-wrap gap-2">
+      <div className="piper-panel-body">
+        <div className="piper-stats-grid">
+          {stats.map(({ label, value }) => (
+            <div className="piper-stat" key={label}>
+              <span className="piper-stat-label">{label}</span>
+              <span className="piper-stat-value">{value}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="piper-section-label">Insert order</div>
+        <div className="piper-insert-order">
           {plan.insertOrder.map((entityName, idx) => (
-            <span
-              key={`${entityName}-${idx}`}
-              className="rounded-full border border-black/15 px-2 py-1 text-xs dark:border-white/25"
-            >
+            <span key={`${entityName}-${idx}`} className="piper-tag piper-tag-accent">
               {idx + 1}. {entityName}
             </span>
           ))}
         </div>
-      </div>
 
-      <div className="mt-4">
-        <p className="mb-2 text-sm font-medium">Relationships</p>
-        <div className="flex max-h-44 flex-wrap gap-2 overflow-auto rounded-md border border-black/10 p-3 text-xs dark:border-white/20">
+        <div className="piper-section-label">Relationships</div>
+        <div className="piper-relationships">
           {schema.relationships.length === 0 ? (
-            <span className="opacity-70">No relationships generated.</span>
+            <span className="piper-relationships-empty">No relationships generated.</span>
           ) : (
-            schema.relationships.map((relationship, idx) => (
+            schema.relationships.map((rel, idx) => (
               <span
-                key={`${relationship.type}-${relationship.fromEntity}-${relationship.toEntity}-${idx}`}
-                className="rounded-full border border-black/15 px-2 py-1 dark:border-white/25"
+                key={`${rel.type}-${rel.fromEntity}-${rel.toEntity}-${idx}`}
+                className="piper-tag"
               >
-                {relationship.type === "many-to-many" && relationship.joinTable
-                  ? `${relationship.fromEntity} <-> ${relationship.toEntity} via ${relationship.joinTable}`
-                  : `${relationship.fromEntity}.${relationship.fkField} -> ${relationship.toEntity}.id (${relationship.type})`}
+                {rel.type === "many-to-many" && rel.joinTable
+                  ? `${rel.fromEntity} ${ARROW_BIDI} ${rel.toEntity} · via ${rel.joinTable}`
+                  : `${rel.fromEntity}.${rel.fkField} ${ARROW_TO} ${rel.toEntity} (${rel.type})`}
               </span>
             ))
           )}
         </div>
-      </div>
 
-      <div className="mt-4 rounded-md border border-black/10 dark:border-white/20">
-        <div className="max-h-72 overflow-auto p-3">
-          <div className="grid gap-3">
-            {entitiesToRender.map((entity) => (
-              <article
-                key={entity.name}
-                className="rounded-md border border-black/10 p-3 dark:border-white/20"
-              >
-                <div className="mb-2 flex items-center justify-between gap-3">
-                  <h3 className="text-sm font-semibold">{entity.name}</h3>
-                  <span className="text-xs opacity-75">
-                    {entity.fields.length} columns
+        <div className="piper-section-label">Tables</div>
+        <div className="piper-tables-scroll">
+          {entitiesToRender.map((entity) => (
+            <div key={entity.name} className="piper-entity">
+              <div className="piper-entity-header">
+                <span className="piper-entity-name">{entity.name}</span>
+                <span className="piper-entity-count">{entity.fields.length} cols</span>
+              </div>
+              <div className="piper-field-row">
+                {entity.fields.map((field) => (
+                  <span
+                    key={`${entity.name}-${field.name}`}
+                    className="piper-field"
+                    title={field.nullable ? "nullable" : "required"}
+                  >
+                    {field.name}
+                    <span className="piper-field-type">:{field.type}</span>
+                    {field.nullable && <span className="piper-field-nullable">?</span>}
                   </span>
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {entity.fields.map((field) => (
-                    <span
-                      key={`${entity.name}-${field.name}`}
-                      className="rounded-full bg-black/5 px-2 py-1 text-xs dark:bg-white/10"
-                      title={field.nullable ? "nullable" : "required"}
-                    >
-                      {field.name}
-                      <span className="opacity-70">:{field.type}</span>
-                    </span>
-                  ))}
-                </div>
-              </article>
-            ))}
-          </div>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
 
-        {schema.entities.length > 8 ? (
-          <div className="border-t border-black/10 p-2 dark:border-white/20">
-            <button
-              type="button"
-              className="cursor-pointer rounded-md border px-3 py-1.5 text-xs"
-              onClick={() => setShowAllTables((prev) => !prev)}
-            >
-              {showAllTables ? "Show less" : `Show all (${schema.entities.length})`}
-            </button>
+        {schema.entities.length > 8 && (
+          <button
+            type="button"
+            className="piper-btn-export piper-btn-tables-toggle"
+            onClick={() => setShowAllTables((prev) => !prev)}
+          >
+            {showAllTables
+              ? "▲ Show fewer tables"
+              : `▼ Show all ${schema.entities.length} tables`}
+          </button>
+        )}
+
+        <button className="piper-btn-primary" type="button" onClick={onGenerateData}>
+          <span>◈</span> Generate Data
+        </button>
+
+        {data && (
+          <div className="piper-success">
+            <span>✓</span> {Object.keys(data).length} tables · data generated successfully
           </div>
-        ) : null}
+        )}
       </div>
-
-      <button
-        className="mt-4 cursor-pointer rounded-md bg-black px-4 py-2 text-white hover:opacity-90 dark:bg-white dark:text-black"
-        type="button"
-        onClick={onGenerateData}
-      >
-        Generate Data
-      </button>
-
-      {data ? <p className="mt-2 text-sm text-green-700 dark:text-green-400">Data generated.</p> : null}
-    </Panel>
+    </div>
   );
 }

@@ -22,7 +22,7 @@ export const metadata: Metadata = {
     template: "%s | Piper Dump Generator",
   },
   description:
-    "Generate realistic database schemas and production-like seed data instantly in your browser. Supports PostgreSQL, MySQL, SQLite, and MongoDB with relationships, constraints, and structured test data for development, testing, and prototyping.",
+    "No manual column-by-column setup: tune presets and relationships, generate schema plus seed data in the browser, then export PostgreSQL, MySQL, SQLite, or MongoDB dumps for testing and prototyping.",
 
   applicationName: "Piper Dump Generator",
   keywords: [
@@ -74,7 +74,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Piper Dump Generator — Schema & Seed Data Generator",
     description:
-      "Generate realistic database schemas and seed data for PostgreSQL, MySQL, SQLite, and MongoDB directly in your browser. Perfect for testing, development, and prototyping.",
+      "Simpler than tools that make you define every column yourself—configure relationships, generate, and export PostgreSQL, MySQL, SQLite, or MongoDB dumps from the browser.",
     url: "/",
     siteName: "Piper Dump Generator",
     locale: "en_US",
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "Piper Dump Generator — Database Schema & Seed Data",
     description:
-      "Instantly generate realistic schema and seed data for PostgreSQL, MySQL, SQLite, and MongoDB. No setup required.",
+      "Preset-driven schema and seed data: adjust relationships, generate, export SQL or Mongo—no spreadsheet-style column editing.",
   },
   icons: {
     icon: [{ url: "/icon.svg", type: "image/svg+xml" }],

@@ -1,5 +1,7 @@
 "use client";
 
+import "./piper-home.css";
+
 import { useMemo, useState } from "react";
 import { PRESET_CONFIGS } from "@/src/constants/ui/presets.constants";
 import type { DataSet, DependencyPlan } from "@/src/core/data/data.model";
@@ -28,12 +30,8 @@ const DEFAULT_ROWS_PER_ENTITY = 200;
 export default function Home() {
   const [preset, setPreset] = useState<ComplexityPreset>(DEFAULT_PRESET);
   const [seed, setSeed] = useState<number>(DEFAULT_SEED);
-  const [rowsPerEntity, setRowsPerEntity] = useState<number>(
-    DEFAULT_ROWS_PER_ENTITY,
-  );
-  const [config, setConfig] = useState<GeneratorConfig>(
-    PRESET_CONFIGS[DEFAULT_PRESET],
-  );
+  const [rowsPerEntity, setRowsPerEntity] = useState<number>(DEFAULT_ROWS_PER_ENTITY);
+  const [config, setConfig] = useState<GeneratorConfig>(PRESET_CONFIGS[DEFAULT_PRESET]);
   const [schema, setSchema] = useState<Schema | null>(null);
   const [plan, setPlan] = useState<DependencyPlan | null>(null);
   const [data, setData] = useState<DataSet | null>(null);
@@ -56,99 +54,94 @@ export default function Home() {
   };
 
   const generateSeedData = () => {
-    if (!schema || !plan) {
-      return;
-    }
+    if (!schema || !plan) return;
     const nextData = generateData(schema, plan, safeRows, safeSeed);
     setData(nextData);
   };
 
   const exportPostgres = () => {
-    if (!schema || !data) {
-      return;
-    }
-    downloadTextFile(
-      "dump.postgres.sql",
-      new PostgresExporter().export(schema, data),
-    );
+    if (!schema || !data) return;
+    downloadTextFile("dump.postgres.sql", new PostgresExporter().export(schema, data));
   };
 
   const exportMysql = () => {
-    if (!schema || !data) {
-      return;
-    }
-    downloadTextFile(
-      "dump.mysql.sql",
-      new MysqlExporter().export(schema, data),
-    );
+    if (!schema || !data) return;
+    downloadTextFile("dump.mysql.sql", new MysqlExporter().export(schema, data));
   };
 
   const exportSqlite = () => {
-    if (!schema || !data) {
-      return;
-    }
-    downloadTextFile(
-      "dump.sqlite.sql",
-      new SqliteExporter().export(schema, data),
-    );
+    if (!schema || !data) return;
+    downloadTextFile("dump.sqlite.sql", new SqliteExporter().export(schema, data));
   };
 
   const exportMongo = () => {
-    if (!schema || !data) {
-      return;
-    }
-    downloadTextFile(
-      "dump.mongo.js",
-      new MongoExporter().export(schema, data),
-      "text/javascript;charset=utf-8",
-    );
+    if (!schema || !data) return;
+    downloadTextFile("dump.mongo.js", new MongoExporter().export(schema, data), "text/javascript;charset=utf-8");
   };
 
+  const activeStep = !schema ? 1 : !data ? 2 : 3;
+
   return (
-    <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-5 p-6">
-      <h1 className="text-2xl font-semibold">Piper Data Dump Generator</h1>
-      <p className="max-w-3xl text-sm text-zinc-600 dark:text-zinc-300">
-        Generate realistic database schemas with relationships, constraints, and
-        production-like seed data, then export clean PostgreSQL, MySQL, SQLite,
-        and MongoDB dumps in minutes.
-      </p>
-      <div className="flex flex-wrap gap-2 text-xs">
-        <span className="rounded-full border px-2 py-1">1. Setup</span>
-        <span className="rounded-full border px-2 py-1">2. Review</span>
-        <span className="rounded-full border px-2 py-1">3. Export</span>
+    <main className="piper-root mx-auto flex w-full max-w-5xl flex-1 flex-col gap-0 p-6 pb-12">
+      {/* Header */}
+      <header className="piper-header mb-10">
+        <div className="piper-eyebrow">DATABASE SEED GENERATOR</div>
+        <h1 className="piper-title">Piper<span className="piper-title-accent">.</span></h1>
+        <p className="piper-subtitle">
+          Realistic schemas with relationships, constraints, and production-grade seed data —
+          without defining every column by hand.
+        </p>
+
+        {/* Step indicator */}
+        <div className="piper-steps">
+          {[
+            { n: 1, label: "Configure" },
+            { n: 2, label: "Review" },
+            { n: 3, label: "Export" },
+          ].map(({ n, label }) => (
+            <div key={n} className={`piper-step ${activeStep === n ? "active" : ""} ${activeStep > n ? "done" : ""}`}>
+              <span className="piper-step-num">{activeStep > n ? "✓" : `0${n}`}</span>
+              <span className="piper-step-label">{label}</span>
+              {n < 3 && <span className="piper-step-connector" />}
+            </div>
+          ))}
+        </div>
+      </header>
+
+      <div className="flex flex-col gap-6">
+        <GeneratorConfigSection
+          preset={preset}
+          config={safeConfig}
+          seed={safeSeed}
+          rowsPerEntity={safeRows}
+          onPresetChange={applyPreset}
+          onConfigChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
+          onSeedChange={setSeed}
+          onRowsChange={setRowsPerEntity}
+          onGenerate={generateSchemaAndPlan}
+        />
+
+        <SchemaPreviewSection
+          schema={schema}
+          plan={plan}
+          data={data}
+          onGenerateData={generateSeedData}
+        />
+
+        <ExportSection
+          schema={schema}
+          data={data}
+          onExportPostgres={exportPostgres}
+          onExportMysql={exportMysql}
+          onExportSqlite={exportSqlite}
+          onExportMongo={exportMongo}
+        />
       </div>
 
-      <GeneratorConfigSection
-        preset={preset}
-        config={safeConfig}
-        seed={safeSeed}
-        rowsPerEntity={safeRows}
-        onPresetChange={applyPreset}
-        onConfigChange={(patch) => setConfig((prev) => ({ ...prev, ...patch }))}
-        onSeedChange={setSeed}
-        onRowsChange={setRowsPerEntity}
-        onGenerate={generateSchemaAndPlan}
-      />
-
-      <SchemaPreviewSection
-        schema={schema}
-        plan={plan}
-        data={data}
-        onGenerateData={generateSeedData}
-      />
-
-      <ExportSection
-        schema={schema}
-        data={data}
-        onExportPostgres={exportPostgres}
-        onExportMysql={exportMysql}
-        onExportSqlite={exportSqlite}
-        onExportMongo={exportMongo}
-      />
-
-      <footer className="mt-2 border-t border-black/10 pt-4 text-xs text-zinc-600 dark:border-white/20 dark:text-zinc-400">
-        © {new Date().getFullYear()} Adam — The Developer. This project
-        originated from Piper.
+      <footer className="piper-footer mt-10">
+        <span>© {new Date().getFullYear()} Adam — The Developer</span>
+        <span className="piper-footer-dot">·</span>
+        <span>Originated from Piper</span>
       </footer>
     </main>
   );

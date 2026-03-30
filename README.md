@@ -1,6 +1,6 @@
 # Piper Data Dump Generator
 
-Generate realistic database schemas with relationships, constraints, and production-like seed data, then export clean PostgreSQL, MySQL, SQLite, and MongoDB dumps in minutes.
+Build realistic schemas, relationships, constraints, and production-like seed data without hand-editing every column the way many dump tools make you. Configure presets and relationship options, generate, pick PostgreSQL, MySQL, SQLite, or MongoDB, and download a clean dump—short path from idea to file.
 
 Built by Adam - The Developer from Piper.
 
