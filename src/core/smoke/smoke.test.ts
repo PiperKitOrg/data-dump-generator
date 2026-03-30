@@ -4,6 +4,7 @@ import { generateData } from "@/src/core/data/data.generator";
 import { resolveDependencies } from "@/src/core/data/dependency.resolver";
 import { validateGeneratorConfig } from "@/src/core/schema/config.validation";
 import { generateSchema } from "@/src/core/schema/schema.generator";
+import { PostgresExporter } from "@/src/exporters/postgres.exporter";
 
 describe("smoke", () => {
   it("generates deterministic schema and data", () => {
@@ -69,5 +70,27 @@ describe("smoke", () => {
     expect(self.length).toBe(1);
     expect(m2m.length).toBe(3);
     expect(directed.length).toBe(Math.min(directedQuota, N - 3));
+  });
+
+  it("exports explicit foreign keys and join tables", () => {
+    const config = validateGeneratorConfig({
+      ...PRESET_CONFIGS.easy,
+      entityCount: 4,
+      includeCycles: true,
+      manyToManyCount: 1,
+      relationshipDensity: 0.5,
+      selfRefCount: 0,
+      compositeKeyRate: 0,
+    });
+    const schema = generateSchema(config, 11);
+    const plan = resolveDependencies(schema);
+    const data = generateData(schema, plan, 3, 11);
+    const sql = new PostgresExporter().export(schema, data);
+
+    expect(sql).toContain("FOREIGN KEY");
+    expect(sql).toContain("REFERENCES");
+    const manyToMany = schema.relationships.find((rel) => rel.type === "many-to-many");
+    expect(manyToMany?.joinTable).toBeTruthy();
+    expect(sql).toContain(`CREATE TABLE "${manyToMany?.joinTable}"`);
   });
 });
