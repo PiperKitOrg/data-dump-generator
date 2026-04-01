@@ -27,6 +27,12 @@ function quote(value: unknown): string {
 
 function createTableStatements(schema: Schema): string[] {
   const stmts: string[] = [];
+  const idTypeByEntity = new Map(
+    schema.entities.map((entity) => {
+      const idField = entity.fields.find((field) => field.name === "id");
+      return [entity.name, mapType(idField?.type ?? "uuid")];
+    }),
+  );
   for (const entity of schema.entities) {
     const columns = entity.fields.map((field) => {
       const nullable = field.nullable ? "" : " NOT NULL";
@@ -45,10 +51,12 @@ function createTableStatements(schema: Schema): string[] {
     }
     const fromFk = `${relationship.fromEntity.toLowerCase()}_id`;
     const toFk = `${relationship.toEntity.toLowerCase()}_id`;
+    const fromType = idTypeByEntity.get(relationship.fromEntity) ?? "UUID";
+    const toType = idTypeByEntity.get(relationship.toEntity) ?? "UUID";
     stmts.push(
       `CREATE TABLE "${relationship.joinTable}" (\n` +
-        `  "${fromFk}" VARCHAR(255) NOT NULL,\n` +
-        `  "${toFk}" VARCHAR(255) NOT NULL,\n` +
+        `  "${fromFk}" ${fromType} NOT NULL,\n` +
+        `  "${toFk}" ${toType} NOT NULL,\n` +
         `  PRIMARY KEY ("${fromFk}", "${toFk}")\n` +
         `);`,
     );
@@ -92,7 +100,13 @@ function createManyToManyConstraints(relationship: Relationship): string[] {
 
 function insertStatements(schema: Schema, data: DataSet): string[] {
   const stmts: string[] = [];
-  for (const entity of schema.entities) {
+  const entityNameSet = new Set(schema.entities.map((entity) => entity.name));
+  const entityInsertOrder = Object.keys(data).filter((name) => entityNameSet.has(name));
+  for (const entityName of entityInsertOrder) {
+    const entity = schema.entities.find((item) => item.name === entityName);
+    if (!entity) {
+      continue;
+    }
     const rows = data[entity.name] ?? [];
     for (const row of rows) {
       const columns = Object.keys(row).map((name) => `"${name}"`);

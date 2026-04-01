@@ -23,10 +23,19 @@ const PAYMENT_PROVIDERS = ["stripe", "adyen", "paypal"];
 const CURRENCIES = ["USD", "EUR", "GBP", "JPY"];
 
 function deterministicUuidLike(entityName: string, rowIndex: number, rng: SeededRandom): string {
-  const prefix = entityName.slice(0, 3).padEnd(3, "x");
-  const a = rng.int(1000, 9999);
-  const b = rng.int(1000, 9999);
-  return `${prefix}-${a}-${b}-${String(rowIndex + 1).padStart(8, "0")}`;
+  const hashSeed = `${entityName}:${rowIndex}:${rng.int(0, 1_000_000)}`;
+  let hash = 0;
+  for (let i = 0; i < hashSeed.length; i += 1) {
+    hash = (hash * 31 + hashSeed.charCodeAt(i)) >>> 0;
+  }
+  const hex = (value: number, width: number) =>
+    (value >>> 0).toString(16).padStart(width, "0").slice(-width);
+  const p1 = hex((hash ^ 0xa3b1c2d3) >>> 0, 8);
+  const p2 = hex((hash * 2654435761) >>> 0, 4);
+  const p3 = hex(((hash >>> 8) | 0x4000) & 0xffff, 4); // version-like nibble
+  const p4 = hex(((hash >>> 3) | 0x8000) & 0xffff, 4); // variant-like nibble
+  const p5 = `${hex((hash ^ 0x9e3779b9) >>> 0, 8)}${hex(rowIndex + 1, 4)}`;
+  return `${p1}-${p2}-${p3}-${p4}-${p5}`;
 }
 
 function valueByFieldName(
@@ -36,40 +45,42 @@ function valueByFieldName(
   rng: SeededRandom,
 ): PrimitiveValue | undefined {
   const name = field.name.toLowerCase();
+  const isStringLike = field.type === "string" || field.type === "text";
+  const isNumeric = field.type === "int" || field.type === "bigint" || field.type === "float" || field.type === "decimal";
   const firstName = rng.pick(FIRST_NAMES);
   const lastName = rng.pick(LAST_NAMES);
 
-  if (name.includes("email")) {
+  if (isStringLike && name.includes("email")) {
     return `${firstName.toLowerCase()}.${lastName.toLowerCase()}${rowIndex + 1}@example.com`;
   }
-  if (name === "first_name") return firstName;
-  if (name === "last_name") return lastName;
-  if (name.includes("name")) return `${firstName} ${lastName}`;
-  if (name.includes("phone")) return `+1-415-555-${String(1000 + (rowIndex % 9000))}`;
-  if (name.includes("city")) return rng.pick(CITIES);
-  if (name.includes("country")) return rng.pick(COUNTRIES);
-  if (name.includes("industry")) return rng.pick(INDUSTRIES);
-  if (name.includes("postal_code")) return String(10000 + (rowIndex % 89999));
-  if (name.includes("line1")) return `${100 + (rowIndex % 900)} Market Street`;
-  if (name.includes("line2")) return `Suite ${1 + (rowIndex % 20)}`;
-  if (name.includes("order_number")) return `ORD-${2026 + (rowIndex % 5)}-${String(rowIndex + 1).padStart(6, "0")}`;
-  if (name.includes("invoice_number")) return `INV-${String(rowIndex + 1).padStart(7, "0")}`;
-  if (name === "sku") return `SKU-${String(rowIndex + 1000).padStart(6, "0")}`;
-  if (name.includes("currency")) return rng.pick(CURRENCIES);
-  if (name.includes("provider")) return rng.pick(PAYMENT_PROVIDERS);
-  if (name.includes("ip_address")) return `10.0.${rowIndex % 255}.${rng.int(2, 250)}`;
-  if (name.includes("user_agent")) return "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)";
-  if (name.includes("event_type")) return rng.pick(["user.created", "order.created", "payment.captured"]);
-  if (name.includes("status")) return rng.pick(field.enumValues ?? ["active", "pending", "disabled"]);
-  if (name.includes("amount") || name.includes("price") || name.includes("subtotal") || name.includes("total")) {
+  if (isStringLike && name === "first_name") return firstName;
+  if (isStringLike && name === "last_name") return lastName;
+  if (isStringLike && name.includes("name")) return `${firstName} ${lastName}`;
+  if (isStringLike && name.includes("phone")) return `+1-415-555-${String(1000 + (rowIndex % 9000))}`;
+  if (isStringLike && name.includes("city")) return rng.pick(CITIES);
+  if (isStringLike && name.includes("country")) return rng.pick(COUNTRIES);
+  if (isStringLike && name.includes("industry")) return rng.pick(INDUSTRIES);
+  if (isStringLike && name.includes("postal_code")) return String(10000 + (rowIndex % 89999));
+  if (isStringLike && name.includes("line1")) return `${100 + (rowIndex % 900)} Market Street`;
+  if (isStringLike && name.includes("line2")) return `Suite ${1 + (rowIndex % 20)}`;
+  if (isStringLike && name.includes("order_number")) return `ORD-${2026 + (rowIndex % 5)}-${String(rowIndex + 1).padStart(6, "0")}`;
+  if (isStringLike && name.includes("invoice_number")) return `INV-${String(rowIndex + 1).padStart(7, "0")}`;
+  if (isStringLike && name === "sku") return `SKU-${String(rowIndex + 1000).padStart(6, "0")}`;
+  if (isStringLike && name.includes("currency")) return rng.pick(CURRENCIES);
+  if (isStringLike && name.includes("provider")) return rng.pick(PAYMENT_PROVIDERS);
+  if (isStringLike && name.includes("ip_address")) return `10.0.${rowIndex % 255}.${rng.int(2, 250)}`;
+  if (isStringLike && name.includes("user_agent")) return "Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)";
+  if (isStringLike && name.includes("event_type")) return rng.pick(["user.created", "order.created", "payment.captured"]);
+  if ((field.type === "enum" || isStringLike) && name.includes("status")) return rng.pick(field.enumValues ?? ["active", "pending", "disabled"]);
+  if (isNumeric && (name.includes("amount") || name.includes("price") || name.includes("subtotal") || name.includes("total"))) {
     return Number((20 + rng.next() * 5000).toFixed(2));
   }
-  if (name.includes("quantity")) return rng.int(1, 10);
-  if (name.includes("description") || name.includes("body")) {
+  if ((field.type === "int" || field.type === "bigint") && name.includes("quantity")) return rng.int(1, 10);
+  if (isStringLike && (name.includes("description") || name.includes("body"))) {
     return `Generated ${entityName} record ${rowIndex + 1} for testing export pipelines.`;
   }
-  if (name.includes("subject")) return `Notification ${rowIndex + 1}`;
-  if (name.includes("reference_code") || name.includes("plan_code")) {
+  if (isStringLike && name.includes("subject")) return `Notification ${rowIndex + 1}`;
+  if (isStringLike && (name.includes("reference_code") || name.includes("plan_code"))) {
     return `REF-${String(rowIndex + 1).padStart(6, "0")}`;
   }
   return undefined;
@@ -159,7 +170,8 @@ function setRelationshipForeignKey(
   const toEntity = byEntityName.get(relationship.toEntity);
   const pkName = toEntity?.primaryKey[0] ?? SCHEMA_FIELD_NAMES.primaryId;
 
-  for (const row of fromRows) {
+  for (let rowIndex = 0; rowIndex < fromRows.length; rowIndex += 1) {
+    const row = fromRows[rowIndex];
     if (
       relationship.nullable &&
       rng.bool(DATA_GENERATOR_DEFAULTS.nullableFkNullRate)
@@ -167,7 +179,17 @@ function setRelationshipForeignKey(
       row[relationship.fkField] = null;
       continue;
     }
-    const target = rng.pick(toRows);
+    // Self references must point to an already inserted row, otherwise per-row
+    // INSERT order can violate the FK constraint.
+    const isSameEntityReference =
+      relationship.type === "self" ||
+      relationship.fromEntity === relationship.toEntity;
+    const targetPool = isSameEntityReference ? toRows.slice(0, rowIndex) : toRows;
+    if (!targetPool.length) {
+      row[relationship.fkField] = null;
+      continue;
+    }
+    const target = rng.pick(targetPool);
     row[relationship.fkField] = (target[pkName] ?? null) as PrimitiveValue;
   }
 }
@@ -244,7 +266,12 @@ export const generateData: GenerateData = (
       const row: Record<string, PrimitiveValue> = {};
 
       for (const keyField of entity.primaryKey) {
-        row[keyField] = `${entity.name}-${keyField}-${rowIndex + 1}`;
+        const pkField = entity.fields.find((field) => field.name === keyField);
+        if (pkField?.type === "uuid") {
+          row[keyField] = deterministicUuidLike(entity.name, rowIndex, rng);
+        } else {
+          row[keyField] = `${entity.name}-${keyField}-${rowIndex + 1}`;
+        }
       }
 
       for (const field of entity.fields) {
@@ -278,9 +305,8 @@ export const generateData: GenerateData = (
     setRelationshipForeignKey(data, relationship, byEntityName, rng);
   }
 
-  for (const relationship of plan.deferredRelations) {
-    setRelationshipForeignKey(data, relationship, byEntityName, rng);
-  }
+  // Deferred relations are cycle/self edges that should be applied in a later
+  // update pass. We keep them unset during INSERT generation to preserve FK safety.
 
   for (const relationship of schema.relationships) {
     setManyToManyRows(data, relationship, byEntityName, rng);

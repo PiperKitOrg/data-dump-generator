@@ -28,6 +28,12 @@ function quote(value: unknown): string {
 export class MysqlExporter implements DialectExporter {
   export(schema: Schema, data: DataSet): string {
     const stmts: string[] = [`-- ${PROJECT_REMARK}`, EXPORT_BANNER.mysql];
+    const idTypeByEntity = new Map(
+      schema.entities.map((entity) => {
+        const idField = entity.fields.find((field) => field.name === "id");
+        return [entity.name, mapType(idField?.type ?? "uuid")];
+      }),
+    );
 
     for (const entity of schema.entities) {
       const columns = entity.fields.map((field) => {
@@ -50,10 +56,12 @@ export class MysqlExporter implements DialectExporter {
       }
       const fromFk = `${relationship.fromEntity.toLowerCase()}_id`;
       const toFk = `${relationship.toEntity.toLowerCase()}_id`;
+      const fromType = idTypeByEntity.get(relationship.fromEntity) ?? "CHAR(36)";
+      const toType = idTypeByEntity.get(relationship.toEntity) ?? "CHAR(36)";
       stmts.push(
         `CREATE TABLE \`${relationship.joinTable}\` (\n` +
-          `  \`${fromFk}\` VARCHAR(255) NOT NULL,\n` +
-          `  \`${toFk}\` VARCHAR(255) NOT NULL,\n` +
+          `  \`${fromFk}\` ${fromType} NOT NULL,\n` +
+          `  \`${toFk}\` ${toType} NOT NULL,\n` +
           `  PRIMARY KEY (\`${fromFk}\`, \`${toFk}\`)\n` +
           `);`,
       );
@@ -73,7 +81,13 @@ export class MysqlExporter implements DialectExporter {
       stmts.push(...createManyToManyConstraints(relationship));
     }
 
-    for (const entity of schema.entities) {
+    const entityNameSet = new Set(schema.entities.map((entity) => entity.name));
+    const entityInsertOrder = Object.keys(data).filter((name) => entityNameSet.has(name));
+    for (const entityName of entityInsertOrder) {
+      const entity = schema.entities.find((item) => item.name === entityName);
+      if (!entity) {
+        continue;
+      }
       const rows = data[entity.name] ?? [];
       for (const row of rows) {
         const columns = Object.keys(row).map((name) => `\`${name}\``);

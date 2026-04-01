@@ -24,10 +24,6 @@ export function resolveDependencies(schema: Schema): DependencyPlan {
 
   const edges: GraphEdge[] = [];
   for (const relationship of schema.relationships) {
-    if (relationship.type === "self") {
-      deferredRelations.push(relationship);
-      continue;
-    }
     if (!isInsertDependency(relationship)) {
       continue;
     }
