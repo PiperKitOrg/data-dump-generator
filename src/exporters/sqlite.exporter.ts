@@ -51,6 +51,11 @@ export class SqliteExporter implements DialectExporter {
       columns.push(
         `  PRIMARY KEY (${entity.primaryKey.map((key) => `"${key}"`).join(", ")})`
       );
+      for (const unique of entity.uniques ?? []) {
+        columns.push(
+          `  UNIQUE (${unique.map((key) => `"${key}"`).join(", ")})`
+        );
+      }
       for (const relationship of relationshipsByFromEntity.get(entity.name) ?? []) {
         columns.push(
           `  FOREIGN KEY ("${relationship.fkField}") REFERENCES "${relationship.toEntity}" ("id")`,

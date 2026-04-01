@@ -37,6 +37,11 @@ export class MysqlExporter implements DialectExporter {
       columns.push(
         `  PRIMARY KEY (${entity.primaryKey.map((key) => `\`${key}\``).join(", ")})`,
       );
+      for (const unique of entity.uniques ?? []) {
+        columns.push(
+          `  UNIQUE (${unique.map((key) => `\`${key}\``).join(", ")})`,
+        );
+      }
       stmts.push(`CREATE TABLE \`${entity.name}\` (\n${columns.join(",\n")}\n);`);
     }
     for (const relationship of schema.relationships) {

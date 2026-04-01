@@ -53,6 +53,7 @@ function createEntity(template: EntityTemplate, tableName: string, useComposite:
   const fields: Field[] = [...bodyFields];
 
   const primaryKey: string[] = [SCHEMA_FIELD_NAMES.primaryId];
+  const uniques: string[][] = [];
   if (useComposite) {
     fields.push({
       name: SCHEMA_FIELD_NAMES.compositeCode,
@@ -60,12 +61,15 @@ function createEntity(template: EntityTemplate, tableName: string, useComposite:
       nullable: false,
     });
     primaryKey.push(SCHEMA_FIELD_NAMES.compositeCode);
+    // Keep id independently referenceable for foreign keys.
+    uniques.push([SCHEMA_FIELD_NAMES.primaryId]);
   }
 
   return {
     name: tableName,
     fields,
     primaryKey,
+    uniques: uniques.length ? uniques : undefined,
   };
 }
 

@@ -34,6 +34,9 @@ function createTableStatements(schema: Schema): string[] {
     });
     const pk = entity.primaryKey.map((key) => `"${key}"`).join(", ");
     columns.push(`  PRIMARY KEY (${pk})`);
+    for (const unique of entity.uniques ?? []) {
+      columns.push(`  UNIQUE (${unique.map((key) => `"${key}"`).join(", ")})`);
+    }
     stmts.push(`CREATE TABLE "${entity.name}" (\n${columns.join(",\n")}\n);`);
   }
   for (const relationship of schema.relationships) {
